@@ -1,6 +1,7 @@
 # Makefile for SPL-compiler
 clean:
 	rm -rf *.o
+	rm lex.yy.c
 
 # To compile your file lexan.l --> lexer
 # 

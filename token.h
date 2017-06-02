@@ -1,9 +1,12 @@
-/* token.h           token definitions         ; 24 Dec 12  */
+/**********************************************************
+ *	File:		token.l
+ *	Project:	SPL-compiler
+ *	Author:		Execution
+ *	Modified:	Jun 2, 2017
+ **********************************************************/
 
 /* Copyright (c) 2012 Gordon S. Novak Jr. and
    The University of Texas at Austin. */
-
-/* Token structure and constant definitions, assuming Bison token numbers */
 
 /* 
 ; This program is free software; you can redistribute it and/or modify
@@ -20,21 +23,23 @@
 ; along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-/* 09 Feb 00; 06 Jul 12; 01 Aug 12
- */
-                                 /* token data structure */
+/* Token structure and constant definitions, assuming Bison token numbers */
+
+/* token data structure */
 typedef struct tokn {
-  int    tokentype;  /* OPERATOR, DELIMITER, RESERVED, etc */
-  int    datatype;   /* INTEGER, REAL, STRINGTYPE, BOOLETYPE, or POINTER */
-  struct symtbr * symtype;
-  struct symtbr * symentry;
-  struct tokn * operands;
-  struct tokn * link;
-  union { char  tokenstring[16];   /* values of different types, overlapped */
-          int   which;
-          int   intnum;
-          double realnum; } tokenval;
-  } *TOKEN;
+	int    tokentype;  /* OPERATOR, DELIMITER, RESERVED, etc */
+	int    datatype;   /* INTEGER, REAL, STRINGTYPE, BOOLETYPE, or POINTER */
+	struct symtbr * symtype;
+	struct symtbr * symentry;
+	struct tokn * operands;
+	struct tokn * link;
+	union {
+		char  tokenstring[257];   /* values of different types, overlapped */
+		int   which;
+		int   intnum;
+		double realnum;
+	} tokenval;
+} *TOKEN;
 
 /* The following alternative kinds of values share storage in the token
    record.  Only one of the following can be present in a given token.  */
@@ -46,9 +51,10 @@ typedef struct tokn {
 #define OPERATOR       0         /* token types */
 #define DELIMITER      1
 #define RESERVED       2
-#define IDENTIFIERTOK  3
-#define STRINGTOK      4
-#define NUMBERTOK      5
+#define TOKEN_ID       3
+#define TOKEN_STR      4
+#define TOKEN_INT      5
+#define TOKEN_REAL     6
 
 #define PLUSOP         1         /* operator numbers */
 #define MINUSOP        2
@@ -79,81 +85,80 @@ typedef struct tokn {
 #define FLOATOP       27
 #define FIXOP         28
 
-#define INTEGER    0             /* number types */
-#define REAL       1
-#define STRINGTYPE 2
-#define BOOLETYPE  3
-#define POINTER    4
+#define TYPE_INT    0             /* number types */
+#define TYPE_REAL   1
+#define TYPE_STR    2
+#define TYPE_BOOL   3
 
-#define RECORDALIGN    8        /* record size must be a multiple of this */
+#define ID			258          /* token types for use with YACC */
+#define CONST_STR	259
+#define CONST_INT	260
+#define CONST_REAL	261
 
-#define IDENTIFIER 258          /* token types for use with YACC */
-#define STRING 259
-#define NUMBER 260
+/* subtract DELIMITER_BIAS from the following to get reserved word numbers */
+#define LP 		262
+#define DELIMITER_BIAS (LP - 1)
+#define RP		263
+#define LB		264
+#define RB		265
+#define DOTDOT	266
+#define COMMA	267
+#define COLON	268
+#define SEMI	269
 
-   /* subtract OPERATOR_BIAS from the following to get operator numbers */
-#define PLUS 261
-#define OPERATOR_BIAS  (PLUS - 1)    /* added to Operators */
-#define MINUS 262
-#define TIMES 263
-#define DIVIDE 264
-#define ASSIGN 265
-#define EQ 266
-#define NE 267
-#define LT 268
-#define LE 269
-#define GE 270
-#define GT 271
-#define POINT 272
-#define DOT 273
-#define AND 274
-#define OR 275
-#define NOT 276
-#define DIV 277
-#define MOD 278
-#define IN 279
+/* subtract OPERATOR_BIAS from the following to get operator numbers */
+#define DOT		270
+#define OPERATOR_BIAS (DOT - 1)
+#define PLUS	271
+#define MINUS	272
+#define MUL		273
+#define DIV_R	274				/* division for real type */
+#define LT		275
+#define LE		276
+#define EQ		277
+#define NE		278
+#define GT		279
+#define GE		280
+#define ASSIGN	281
+#define AND		282
+#define OR		283
+#define NOT		284
+#define DIV		285
+#define MOD		286
 
-   /* subtract DELIMITER_BIAS from the following to get delimiter numbers */
-#define COMMA 280
-#define DELIMITER_BIAS (COMMA - 1)   /* added to Delimiters */
-#define SEMICOLON 281
-#define COLON 282
-#define LPAREN 283
-#define RPAREN 284
-#define LBRACKET 285
-#define RBRACKET 286
-#define DOTDOT 287
+/* subtract RESERVED_BIAS from the following to get reserved word numbers */
+#define ARRAY		287
+#define RESERVED_BIAS (ARRAY - 1)
+#define BEGIN_T		288
+#define CASE		289
+#define CONST		290
+#define DO			291
+#define DOWNTO		292
+#define ELSE		293
+#define END			294
+#define FOR			295
+#define FUNCTION	296
+#define GOTO		297
+#define IF			298
+#define IN			299
+#define OF			300
+#define PACKED		301
+#define PROCEDURE	302
+#define PROGRAM		303
+#define RECORD		304
+#define REPEAT		305
+#define SET			306
+#define THEN		307
+#define TO			308
+#define TYPE		309
+#define UNTIL		310
+#define VAR			311
+#define WHILE		312
+#define WITH		313
+#define SYS_CON		314
+#define SYS_FUNCT	315
+#define SYS_PROC	316
+#define SYS_TYPE	317
 
-   /* subtract RESERVED_BIAS from the following to get reserved word numbers */
-#define ARRAY 288
-#define RESERVED_BIAS  (ARRAY - 1)   /* added to reserved words */
-#define BEGINBEGIN 289               /* begin */
-#define CASE 290
-#define CONST 291
-#define DO 292
-#define DOWNTO 293
-#define ELSE 294
-#define END 295
-#define FILEFILE 296                 /* file */
-#define FOR 297
-#define FUNCTION 298
-#define GOTO 299
-#define IF 300
-#define LABEL 301
-#define NIL 302
-#define OF 303
-#define PACKED 304
-#define PROCEDURE 305
-#define PROGRAM 306
-#define RECORD 307
-#define REPEAT 308
-#define SET 309
-#define THEN 310
-#define TO 311
-#define TYPE 312
-#define UNTIL 313
-#define VAR 314
-#define WHILE 315
-#define WITH 316
 
 #define YYTOKENTYPE 0

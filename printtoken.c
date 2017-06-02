@@ -1,3 +1,11 @@
+/**********************************************************
+ *  File:       printtoken.c
+ *  Project:    SPL-compiler
+ *  Author:     Execution
+ *  Modified:   Jun 2, 2017
+ **********************************************************/
+
+
 /* printtoken.c      print tokens for debugging           09 Feb 01       */
 
 /* Functions to allocate token records and print tokens for debugging */
@@ -28,18 +36,17 @@
    You may use them if you wish, or you may copy them and
    modify them as you see fit. */
 
-static char* opprnt[]  = {" ", "+", "-", "*", "/", ":=", "=", "<>", "<", "<=",
-                          ">=", ">",  "^", ".", "and", "or", "not", "div",
-                          "mod", "in", "if", "goto", "progn", "label",
-                          "funcall", "aref", "program", "float"};
-static char *delprnt[] = { "  ", " ,", " ;", " :", " (", " )", " [", " ]",
-                           ".."} ;
-static char *resprnt[] = { " ", "array", "begin", "case", "const", "do",
-                           "downto", "else", "end", "file", "for",
-		           "function", "goto", "if", "label", "nil",
+static char* delprnt[] = { " ", "(", ")", "[", "]", "..", ",", ":", ";"} ;
+static char* opprnt[]  = {" ", ".", "+", "-", "*", "/", "<", "<=", "=", "<>", ">", ">=", ":=",
+    "and", "or", "not", "div", "mod"
+};
+static char* resprnt[] = { " ", "array", "begin", "case", "const", "do",
+                           "downto", "else", "end", "for",
+		                  "function", "goto", "if", "in",
                            "of", "packed", "procedure", "program", "record",
                            "repeat", "set", "then", "to", "type",
-		           "until", "var", "while", "with" };
+		                  "until", "var", "while", "with",
+                          "SYS_CON", "SYS_FUNCT", "SYS_PROC", "SYS_TYPE" };
 
 TOKEN talloc()           /* allocate a new token record */
   { TOKEN tok;
@@ -66,20 +73,17 @@ void printtoken(TOKEN tok)
 	           tok->tokentype, tok->whichval,
                    resprnt[tok->whichval] );
            break;
-         case IDENTIFIERTOK: case STRINGTOK:
+         case TOKEN_ID: case TOKEN_STR:
            printf ("tokentype: %2d  value:  %16s\n",
 	           tok->tokentype, tok->stringval);
            break;
-         case NUMBERTOK:
-           switch (tok->datatype)
-             {case INTEGER:
+         case TOKEN_INT:
                 printf ("tokentype: %2d  type:  %4d %12d\n",
 	                tok->tokentype, tok->datatype, tok->intval);
                 break;
-	      case REAL:
+	      case TOKEN_REAL:
                 printf ("tokentype: %2d  type:  %4d %12e\n",
 	                tok->tokentype, tok->datatype, tok->realval);
                 break;
-	      }
 	 }
   }

@@ -42,7 +42,8 @@ int main()          /* Calls yylex repeatedly to test */
     printf("Started scanner test.\n");
     done = 0;
     while (done == 0)
-      { res = yylex();    /* yylex is the entry point to the lex program */
+      {
+        res = yylex();    /* yylex is the entry point to the lex program */
         if (res != 0)
            {
              printf("yylex() = %4d   ", res);
