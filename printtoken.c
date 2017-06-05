@@ -47,43 +47,50 @@ static char* resprnt[] = { " ", "array", "begin", "case", "const", "do",
                            "repeat", "set", "then", "to", "type",
 		                  "until", "var", "while", "with",
                           "SYS_CON", "SYS_FUNCT", "SYS_PROC", "SYS_TYPE" };
-
-TOKEN talloc()           /* allocate a new token record */
-  { TOKEN tok;
+/* allocate a new token record */
+TOKEN talloc() {
+    TOKEN tok;
     tok = (TOKEN) calloc(1,sizeof(struct tokn));
     if ( tok != NULL ) return (tok);
-       else printf("talloc failed.");
-  }
+       else {
+        printf("talloc failed.");
+        exit(-1);
+    }
+}
 
-void printtoken(TOKEN tok)
-  {
-    switch (tok->tokentype)
-	{case OPERATOR:
-           printf ("tokentype: %2d  which: %4d   %10s\n",
-	           tok->tokentype, tok->whichval,
-                   opprnt[tok->whichval] );
+void printtoken(TOKEN tok) {
+    switch (tok->tokenType) {
+        case OPERATOR:
+            printf ("tokenType: %2d  which: %4d   %10s\n",
+                tok->tokenType, tok->whichval,
+                opprnt[tok->whichval] );
+            break;
+        case DELIMITER:
+            printf ("tokenType: %2d  which: %4d   %10s\n",
+                tok->tokenType, tok->whichval,
+                delprnt[tok->whichval] );
            break;
-         case DELIMITER:
-           printf ("tokentype: %2d  which: %4d   %10s\n",
-	           tok->tokentype, tok->whichval,
-                   delprnt[tok->whichval] );
+        case RESERVED:
+           printf ("tokenType: %2d  which: %4d   %10s\n",
+                tok->tokenType, tok->whichval,
+                resprnt[tok->whichval] );
            break;
-         case RESERVED:
-           printf ("tokentype: %2d  which: %4d   %10s\n",
-	           tok->tokentype, tok->whichval,
-                   resprnt[tok->whichval] );
+        case TOKEN_ID: case TOKEN_STR:
+           printf ("tokenType: %2d  value:  %16s\n",
+	           tok->tokenType, tok->stringval);
            break;
-         case TOKEN_ID: case TOKEN_STR:
-           printf ("tokentype: %2d  value:  %16s\n",
-	           tok->tokentype, tok->stringval);
-           break;
-         case TOKEN_INT:
-                printf ("tokentype: %2d  type:  %4d %12d\n",
-	                tok->tokentype, tok->datatype, tok->intval);
+        case TOKEN_NUM:
+            switch (tok->dataType) {
+              case TYPE_INT:
+                printf ("tokenType: %2d  type:  %4d %12d\n",
+                  tok->tokenType, tok->dataType, tok->intval);
                 break;
-	      case TOKEN_REAL:
-                printf ("tokentype: %2d  type:  %4d %12e\n",
-	                tok->tokentype, tok->datatype, tok->realval);
+              case  TYPE_REAL:
+                printf ("tokenType: %2d  type:  %4d %12e\n",
+                  tok->tokenType, tok->dataType, tok->realval);
                 break;
+            }
+          break;
+            
 	 }
   }

@@ -4,37 +4,42 @@ reference from CS375: UT
 
 materials: ftp://ftp.cs.utexas.edu/pub/novak/cs375/
 
+### requires
 
+SPL is a Simple Pascal Language.
+
+### attention
+
+- Upper or lower case do not matter in Reserved Words.
 
 ## Part 1
 
 Lexical Analyzer
 
-#### Files Needed
-
-Modified/new files
+#### New Files
 
 - lexan.l
 - Makefile
+- lexan.h *
+- token.h *
 
-Files req'd from /projects/CS375/
 
-1) lexan.h
+- printtoken.c	*
 
-2) lexanl.c
 
-- printtoken.c
-- token.h
+- lexanl.c *
 
 ### Instruction
 
 ```
 $ make lexer
-$ ./lexer < [filename.spl]
+$ ./lexer < [SPL-file]
 ```
 
+### output
+
 ```
-yylex() =  306   tokentype:  2  which:   19      program
+yylex() =  306   tokentype:  2  which:   19      Program
 yylex() =  258   tokentype:  3  value:            graph1
 yylex() =  283   tokentype:  1  which:    4            (
 yylex() =  258   tokentype:  3  value:            output
@@ -65,4 +70,26 @@ yylex() =  259   tokentype:  4  value:                 *
 yylex() =  284   tokentype:  1  which:    5            )
 yylex() =  295   tokentype:  2  which:    8          end
 yylex() =  273   tokentype:  0  which:   13            .
+```
+
+## Part 2
+
+parser
+
+### Files
+
+Modified/new files
+
+- parse.y
+- parse.h *
+- pprint.c *
+- symtab.c *
+- symtab.h *
+- syntax.txt *
+
+### Instruction
+
+```
+$ make parser
+$ ./parser < [SPL-file]
 ```

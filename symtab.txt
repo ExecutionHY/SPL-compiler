@@ -1,0 +1,170 @@
+symtab.txt                       09 Aug 96; 13 Jul 99; 01 Aug 07; 08 Aug 07
+
+                  Conventions for Use of Symbol Table
+
+This document describes the conventions that should be followed in using
+the symbol table routines in the file symtab.c .
+
+
+The following routines in symtab.c are useful:
+
+initsyms()       Initializes the symbol table for compiler-defined symbols
+                 such as INTEGER.  Call it once to initialize.
+
+searchst(name)   Search the symbol table, starting from block blocknumber
+                 and continuing through its containing blocks, for name:
+                    SYMBOL sym = searchst(tok->stringval);
+
+searchins(name)  Search the symbol table, inserting the symbol if not found.
+                 Use this for type names and pointer targets, e.g. ^person
+
+symalloc()       Allocate a new symbol record.
+                 Use this for a RECORDSYM record.
+
+makesym(name)    Allocate a new symbol record and put name in it.
+                 Use this for a field of a record.
+
+insertsym(name)  Allocate a new record, put name in it, and insert it into
+                 the symbol table at the current level:
+                 Use this for a variable name.
+                    sym = insertsym(tok->stringval);
+
+printst()        Print the entire symbol table.  Useful for debugging.
+
+dbprsymbol(sym)  Print details of a single symbol record for debugging.
+
+alignsize(type)  Returns int alignment boundary required for the given type.
+
+
+Connections between Tokens and Symbols:
+
+Every token that is part of an expression tree will have a type, symtype.
+Identifier tokens for variables (only) will also have a symentry pointer.
+The conventions are as follows:
+
+  tok->symtype always points to the type of the token.  For example, if
+  there is a declaration   var i: integer;   and an Identifier i is
+  found in code, its symtype will point to the basic type Integer.
+  Operator tokens, as well as Identifier tokens, could have a symtype
+  pointer, e.g. the + operator in (+ a b) could point to the type of
+  the result; however, the tok->datatype is more useful and the
+  tok->symtype is not necessary for operator tokens.
+
+  tok->symentry points to the symbol table entry of an Identifier
+  that represents a variable.  Other kinds of tokens do not have
+  a symentry pointer.  symentry is needed for Identifiers because
+  the offset of the variable is needed to generate the load/store
+  instructions to access the variable.
+
+  tok->datatype is a small-integer data type that is used when the
+  type is a basic type, e.g.  tok->datatype = INTEGER;  .
+
+An Identifier token is looked up in the symbol table; then pointers to
+both its symbol table entry and its type are established.  The following
+code accomplishes this:
+
+     TOKEN tok;              /* the ID token */
+     SYMBOL sym, typ;        /* symbol table entry and its type */
+
+     sym = searchst(tok->stringval);     /* look up the name in the table */
+     tok->symentry = sym;                /* point token to its sym entry  */
+     typ = sym->datatype;                /* get the type of the symbol    */
+     tok->symtype = typ;                 /* make it the token's type      */
+     if ( typ->kind == BASICTYPE )       /* if the type is a basic type   */
+         tok->datatype = typ->basicdt;   /*   put basic type in token too */
+
+
+Data Structures for Different Kinds of Symbols:
+
+The "kind" field establishes the kind of symbol represented by an entry.
+
+Basic Type:
+   kind      = BASICTYPE
+   basicdt   = type code (INTEGER, REAL, STRINGTYPE, BOOLETYPE, POINTER)
+   size      = size of one data item in addressing units (bytes).
+
+Constant:
+   kind      = CONSTSYM
+   basicdt   = type code (INTEGER, REAL, STRINGTYPE, or BOOLETYPE)
+   constval  = constant value (constval.intnum, constval.realnum,
+                 or constval.stringconst)
+   size      = size of data item in addressing units (bytes).
+
+Subrange:
+   kind      = SUBRANGE
+   basicdt   = INTEGER
+   lowbound  = lower bound value
+   highbound = higher bound value
+   size      = basicsizes[INTEGER]
+
+Variable:
+   kind      = VARSYM
+   datatype  = pointer to type in symbol table.  If type is a basic type,
+                 e.g. integer, it will be a pointer to the type name entry.
+                 Otherwise, it will be a pointer to the type structure,
+                 not the type name.
+   size      = size of data item in addressing units (bytes).  The size is
+                 copied from the size of the variable's type.
+   offset    = offset of data item from the beginning of the data area
+                  in addressing units (bytes).
+               The offset that should be used (and incremented) is given by
+                  blockoffs[blocknumber].
+Type Name:
+   kind      = TYPESYM
+   datatype  = pointer to the type structure in the symbol table.
+   size      = size of data item in addressing units (bytes).
+
+Record:
+   kind      = RECORDSYM
+   datatype  = pointer to field list in symbol table.
+   size      = total size of record in addressing units (bytes).
+
+   Each field is a symbol table record (but is not "inserted" in the symbol
+   table, so it is only visible when starting from the record entry).
+   The offset of each field gives its offset from the start of the record.
+   Field entries are linked using the link field.
+
+Array:
+   kind      = ARRAYSYM
+   datatype  = pointer to array item type in symbol table.
+   size      = total size of array in addressing units (bytes).
+   lowbound  = lower bound value of dimension
+   highbound = higher bound value of dimension
+
+   Note that a multi-dimensional array is treated as an array of arrays.
+
+Pointer:
+   kind      = POINTERSYM
+   datatype  = pointer to name of the type pointed to
+   size      = basicsizes[POINTER]
+
+Function or Procedure:
+   kind      = FUNCTIONSYM
+   datatype  = pointer to a list of result type (an argument entry
+                 with no name) followed by arguments.  These entries
+                 are linked using the link field.
+
+Argument:
+   kind      = ARGSYM
+   datatype  = pointer to type of argument
+   size      = size in addressing units (bytes).
+
+
+Block Structure:
+
+The symbol table reflects the block structure of the source language.
+For purposes of the class assignment, we can assume that all program
+symbols will go in a single block denoted by the variable
+blocknumber = 1.  Symbols that are predefined by the compiler
+(integer, real, sin, ...) are in symbol table level 0.  Symbols from
+the program being compiled are in level 1.
+
+
+Tokens:
+
+Remember that everything on the YACC stack must be a TOKEN.  If the
+result that is to be returned for a declaration construct is a symbol
+table pointer, put that pointer into the tok->symtype field of
+a token and return the token as the value.  For example, the value
+of the 'type' grammar rule should be a TOKEN whose symtype is a
+pointer to the returned type.

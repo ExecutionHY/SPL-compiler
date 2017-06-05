@@ -1,0 +1,5 @@
+program graph1;
+begin
+a := 1;
+end
+.

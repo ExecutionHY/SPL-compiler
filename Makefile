@@ -2,6 +2,7 @@
 clean:
 	rm -rf *.o
 	rm lex.yy.c
+	rm y.tab.c
 
 # To compile your file lexan.l --> lexer
 # 
@@ -33,12 +34,6 @@ y.tab.o: y.tab.c
 
 y.tab.c: parse.y token.h parse.h symtab.h lexan.h
 	yacc parse.y
-
-lex.yy.o: lex.yy.c
-	cc -c lex.yy.c
-
-lex.yy.c: lexan.l token.h
-	lex lexan.l
 
 pprint.o: pprint.c token.h
 	cc -c pprint.c
