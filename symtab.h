@@ -37,7 +37,7 @@ typedef struct symtbr {
 	int    offset;
 	union  {
 		char  stringConst[16];
-		int   intNum;
+		int   intNum;			// also store boolean value
 		double realNum;
 		char charConst;
 	} constval;

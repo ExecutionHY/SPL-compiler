@@ -121,8 +121,7 @@ void printexpr(TOKEN tok, int col) {
 		opnds = tok->operands;
 		start = 0;
 		while (opnds != NULL) {
-			if (start == 0)
-			printf(" ");
+			if (start == 0) printf(" ");
 			else {
 				printf("\n");
 				for (i = 0; i < nextcol; i++) printf(" ");

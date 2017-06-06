@@ -2,27 +2,62 @@
  * File:    	parse.h
  * Project: 	SPL-compiler
  * Author:		Execution
- * Modified:	Jun 2, 2017
+ * Modified:	Jun 6, 2017
  **********************************************************/
 
 #ifndef PARSE_H
 #define PARSE_H
 
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#include "token.h"
-#include "lexan.h"
-#include "symtab.h"
-#include "pprint.h"
-
-
 /* makeprogram makes the tree structures for the top-level program */
 TOKEN makeProgram(TOKEN program_head, TOKEN routine);
-/* makeop makes a new operator token with operator number opnum.
-   Example:  makeop(FLOATOP)  */
-TOKEN makeop(int opNum);
+/* makeop makes a new operator token with operator number opnum. */
+TOKEN makeOp(int opNum);
+/* cons links a new item onto a list */
+TOKEN cons(TOKEN list, TOKEN item);
+/* instconst installs a constant in the symbol table */
+void  instConst(TOKEN idtok, TOKEN consttok);
+/* findtype looks up a type name in the symbol table, puts the pointer
+   to its type into tok->symtype, returns tok. */
+TOKEN findType(TOKEN tok);
 
+/* binop links a binary operator op to two operands, lhs and rhs. */
+TOKEN binop(TOKEN op, TOKEN lhs, TOKEN rhs);
+TOKEN binop_type_coerce(TOKEN op, TOKEN lhs, TOKEN rhs);
+/* makefix forces the item tok to be integer, by truncating a constant
+   or by inserting a FIXOP operator */
+TOKEN makefix(TOKEN tok);
+/* makefloat forces the item tok to be floating, by floating a constant
+   or by inserting a FLOATOP operator */
+TOKEN makefloat(TOKEN tok);
+
+/* instvars will install variables in symbol table.
+   typetok is a token containing symbol table pointer for type. */
+void  instVars(TOKEN idlist, TOKEN typetok);
+/* wordaddress pads the offset n to be a multiple of wordsize.
+   wordsize should be 4 for integer, 8 for real and pointers,
+   16 for records and arrays */
+int   wordaddress(int n, int wordsize);
+
+/* findid finds an identifier in the symbol table, sets up symbol table
+   pointers, changes a constant to its number equivalent */
+TOKEN findId(TOKEN tok);
+/* insttype will install a type name in symbol table.
+   typetok is a token containing symbol table pointers. */
+void  instType(TOKEN typename, TOKEN typetok);
+
+/* instenum installs an enumerated subrange in the symbol table,
+   e.g., type color = (red, white, blue)
+   by calling makesubrange and returning the token it returns. */
+TOKEN instEnum(TOKEN idlist);
+/* makesubrange makes a SUBRANGE symbol table entry, puts the pointer to it
+   into tok, and returns tok. */
+TOKEN makeSubrange(TOKEN tok, int low, int high);
+//TOKEN makesubrange(TOKEN tok, TOKEN low, TOKEN high);
+/* makeintc makes a new token with num as its value */
+TOKEN makeIntc(int num);
+
+/* copytok makes a new token that is a copy of origtok */
+TOKEN copyTok(TOKEN origtok);
 
 /* parse.h     Gordon S. Novak Jr.    */
 /* 16 Apr 04; 23 Feb 05; 17 Nov 05; 18 Apr 06; 26 Jul 12; 07 Aug 13 */
@@ -48,17 +83,9 @@ TOKEN appendst(TOKEN statements, TOKEN more);
    tok and tokb are (now) unused tokens that are recycled. */
 TOKEN arrayref(TOKEN arr, TOKEN tok, TOKEN subs, TOKEN tokb);
 
-/* binop links a binary operator op to two operands, lhs and rhs. */
-TOKEN binop(TOKEN op, TOKEN lhs, TOKEN rhs);
 
-TOKEN binop_type_coerce(TOKEN op, TOKEN lhs, TOKEN rhs);
 
-/* cons links a new item onto the front of a list.  Equivalent to a push.
-   (cons 'a '(b c))  =  (a b c)    */
-TOKEN cons(TOKEN item, TOKEN list);
 
-/* copytok makes a new token that is a copy of origtok */
-TOKEN copytok(TOKEN origtok);
 
 /* dogoto is the action for a goto statement.
    tok is a (now) unused token that is recycled. */
@@ -75,13 +102,7 @@ TOKEN dopoint(TOKEN var, TOKEN tok);
 /* fillintc smashes tok, making it into an INTEGER constant with value num */
 TOKEN fillintc(TOKEN tok, int num);
 
-/* findid finds an identifier in the symbol table, sets up symbol table
-   pointers, changes a constant to its number equivalent */
-TOKEN findid(TOKEN tok);
 
-/* findtype looks up a type name in the symbol table, puts the pointer
-   to its type into tok->symtype, returns tok. */
-TOKEN findtype(TOKEN tok);
 
 TOKEN get_last_link(TOKEN tok);
 
@@ -96,17 +117,10 @@ TOKEN get_rec_field(TOKEN rec, TOKEN field);
    The symbol table pointer is returned in token typetok. */
 TOKEN instarray(TOKEN bounds, TOKEN typetok);
 
-/* instconst installs a constant in the symbol table */
-void  instconst(TOKEN idtok, TOKEN consttok);
-
 /* instdotdot installs a .. subrange in the symbol table.
    dottok is a (now) unused token that is recycled. */
 TOKEN instdotdot(TOKEN lowtok, TOKEN dottok, TOKEN hightok);
 
-/* instenum installs an enumerated subrange in the symbol table,
-   e.g., type color = (red, white, blue)
-   by calling makesubrange and returning the token it returns. */
-TOKEN instenum(TOKEN idlist);
 
 /* instfields will install type in a list idlist of field name tokens:
    re, im: real    put the pointer to REAL in the RE, IM tokens.
@@ -125,26 +139,13 @@ TOKEN instpoint(TOKEN tok, TOKEN typename);
    used to return the result in its symtype */
 TOKEN instrec(TOKEN rectok, TOKEN argstok);
 
-/* insttype will install a type name in symbol table.
-   typetok is a token containing symbol table pointers. */
-void  insttype(TOKEN typename, TOKEN typetok);
 
-/* instvars will install variables in symbol table.
-   typetok is a token containing symbol table pointer for type. */
-void  instvars(TOKEN idlist, TOKEN typetok);
 
 /* makearef makes an array reference operation.
    off is be an integer constant token
    tok (if not NULL) is a (now) unused token that is recycled. */
 TOKEN makearef(TOKEN var, TOKEN off, TOKEN tok);
 
-/* makefix forces the item tok to be integer, by truncating a constant
-   or by inserting a FIXOP operator */
-TOKEN makefix(TOKEN tok);
-
-/* makefloat forces the item tok to be floating, by floating a constant
-   or by inserting a FLOATOP operator */
-TOKEN makefloat(TOKEN tok);
 
 /* makefor makes structures for a for statement.
    sign is 1 for normal loop, -1 for downto.
@@ -166,8 +167,6 @@ TOKEN makegoto(int label);
    tok is a (now) unused token that is recycled to become an IFOP operator */
 TOKEN makeif(TOKEN tok, TOKEN exp, TOKEN thenpart, TOKEN elsepart);
 
-/* makeintc makes a new token with num as its value */
-TOKEN makeintc(int num);
 
 /* makelabel makes a new label, using labelnumber++ */
 TOKEN makelabel();
@@ -198,10 +197,6 @@ TOKEN makerealtok(float num);
    tok and tokb are (now) unused tokens that are recycled. */
 TOKEN makerepeat(TOKEN tok, TOKEN statements, TOKEN tokb, TOKEN expr);
 
-/* makesubrange makes a SUBRANGE symbol table entry, puts the pointer to it
-   into tok, and returns tok. */
-TOKEN makesubrange(TOKEN tok, int low, int high);
-//TOKEN makesubrange(TOKEN tok, TOKEN low, TOKEN high);
 
 TOKEN maketimes(TOKEN lhs, TOKEN rhs, TOKEN tok);
 
@@ -240,10 +235,6 @@ TOKEN talloc();
 /* unaryop links a unary operator op to one operand, lhs */
 TOKEN unaryop(TOKEN op, TOKEN lhs);
 
-/* wordaddress pads the offset n to be a multiple of wordsize.
-   wordsize should be 4 for integer, 8 for real and pointers,
-   16 for records and arrays */
-int   wordaddress(int n, int wordsize);
 
 TOKEN write_fxn_args_type_check(TOKEN fn, TOKEN args);
 

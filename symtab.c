@@ -25,8 +25,8 @@ int    blockoffs[MAXBLOCKS];  /* Storage offsets for each block         */
 SYMBOL symtab[MAXBLOCKS];     /* Symbol chain for each block            */
 SYMBOL symend[MAXBLOCKS];     /* End of symbol chain for each block     */
 
-/* Sizes of basic types  INTEGER  REAL  STRINGTYPE  BOOLETYPE  POINTER   */
-int basicsizes[5] =      { 4,       8,       1,         4,        8 };
+/* Sizes of basic types  INTEGER  REAL  	CHAR  	BOOL 	 STRING   */
+int basicsizes[5] =      { 4,       8,       1,         4,        16 };
 
 char* symprint[10]  = {" ", "BASIC", "CONST", "VAR", "SYM_SUBRANGE",
                        "FUNCTION", "ARRAY", "RECORD", "TYPE"};

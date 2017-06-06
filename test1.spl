@@ -1,7 +1,16 @@
 program graph1;
+const
+	one = 1;
+type
+	type1 = integer;
+	type2 = (item1, item2);
 var
-	a: integer;
+	a: type1;
+	b: type2;
 begin
-	a := 1;
+	a := one;
+	begin
+		b := item2;
+	end
 end
 .
