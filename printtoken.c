@@ -43,7 +43,7 @@ static char* opprnt[]  = {" ", ".", "+", "-", "*", "/", "<", "<=", "=", "<>", ">
 static char* resprnt[] = { " ", "array", "begin", "case", "const", "do",
                            "downto", "else", "end", "for",
 		                  "function", "goto", "if", "in",
-                           "of", "packed", "procedure", "program", "record",
+                           "of", "packed", "procedure", "program", "read", "record",
                            "repeat", "set", "then", "to", "type",
 		                  "until", "var", "while", "with",
                           "SYS_CON", "SYS_FUNCT", "SYS_PROC", "SYS_TYPE" };

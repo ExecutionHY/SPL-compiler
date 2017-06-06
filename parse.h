@@ -1,15 +1,28 @@
 /**********************************************************
- * File:    token.l
- * Project: SPL-compiler
- * Author:     Execution
- * Modified:   Jun 2, 2017
+ * File:    	parse.h
+ * Project: 	SPL-compiler
+ * Author:		Execution
+ * Modified:	Jun 2, 2017
  **********************************************************/
+
+#ifndef PARSE_H
+#define PARSE_H
+
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+#include "token.h"
+#include "lexan.h"
+#include "symtab.h"
+#include "pprint.h"
+
 
 /* makeprogram makes the tree structures for the top-level program */
 TOKEN makeProgram(TOKEN program_head, TOKEN routine);
 /* makeop makes a new operator token with operator number opnum.
    Example:  makeop(FLOATOP)  */
 TOKEN makeop(int opNum);
+
 
 /* parse.h     Gordon S. Novak Jr.    */
 /* 16 Apr 04; 23 Feb 05; 17 Nov 05; 18 Apr 06; 26 Jul 12; 07 Aug 13 */
@@ -257,6 +270,12 @@ typedef short boolean;
 
 /* Do not alter any macros below this line. */
 
+
+#define NUM_COERCE_IMPLICIT		1
+#define ELIM_NESTED_PROGN		1     /* disables makepnb() functionality and defaults to makeprogn() if 0 */
+#define DEBUG_MASTER_SWITCH		1     /* 1 for true, 0 for false  */
+#define DB_PRINT_ARGS			1     /* print function arguments */
+
 #define DB_CONS       1             /* bit to trace cons() */
 #define DB_BINOP      2             /* bit to trace binop() */
 #define DB_MAKEIF     4             /* bit to trace makeif() */
@@ -265,50 +284,65 @@ typedef short boolean;
 
 #define DB_MAKEPROGRAM  32          /* bit to trace makeprogram() */
 #define DB_MAKEFUNCALL  64          /* bit to trace makefuncall() */
-#define DB_ADDINT    96          /* bit to trace addint() */
-#define DB_FINDID    128            /* bit to trace findid() */
+#define DB_ADDINT       96          /* bit to trace addint() */
+#define DB_FINDID       128            /* bit to trace findid() */
 #define DB_FINDTYPE     256            /* bit to trace findtype() */
 #define DB_ADDOFFS      384            /* bit to trace addoffs() */
 #define DB_INSTVARS     512            /* bit to trace instvars() */
 #define DB_INSTENUM     768            /* bit to trace instenum() */
 #define DB_MAKEFOR      1024        /* bit to trace makefor() */
 #define DB_INSTTYPE     1280        /* bit to trace insttype() */
-#define DB_MULINT    2048        /* bit to trace mulint() */
+#define DB_MULINT       2048        /* bit to trace mulint() */
 #define DB_MAKEREPEAT   3072 //2560    /* bit to trace makerepeat() */
 #define DB_UNARYOP      4096 //3072    /* bit to trace unaryop() */
-#define DB_MAKEOP    5120 //3584    /* bit to trace makeop() */
-#define DB_MAKEFLOAT 6144 //4096    /* bit to trace makefloat() */
+#define DB_MAKEOP       5120 //3584    /* bit to trace makeop() */
+#define DB_MAKEFLOAT    6144 //4096    /* bit to trace makefloat() */
 #define DB_MAKEFIX      7168 //4608    /* bit to trace makefix() */
 #define DB_MAKEGOTO     8192 //5120    /* bit to trace makegoto() */
-#define DB_MAKELABEL 9216 //5632    /* bit to trace makelabel() */
+#define DB_MAKELABEL    9216 //5632    /* bit to trace makelabel() */
 #define DB_MAKEPNB      10240 //6144   /* bit to trace makepnb() */
-#define DB_INSTCONST 11264 //6656   /* bit to trace instconst() */
-#define DB_MAKEWHILE 12288 //7168   /* bit to trace makewhile() */
+#define DB_INSTCONST    11264 //6656   /* bit to trace instconst() */
+#define DB_MAKEWHILE    12288 //7168   /* bit to trace makewhile() */
 #define DB_COPYTOK      13312 //7680   /* bit to trace copytok() */
 #define DB_INSTDOTDOT   14336 //8192   /* bit to trace instdotdot() */
 #define DB_SEARCHINSST  15360 //8704   /* bit to trace searchinsst() */
-#define DB_INSTPOINT 16384 //9216   /* bit to trace instpoint() */
+#define DB_INSTPOINT    16384 //9216   /* bit to trace instpoint() */
 #define DB_INSTREC      17408 //9728   /* bit to trace instrec() */
 #define DB_INSTFIELDS   18432 //10240  /* bit to trace instfields() */
 #define DB_MAKEPLUS     19456 //10752  /* bit to trace makeplus() */
 #define DB_MAKEAREF     20480 //11264  /* bit to trace makearef() */
-#define DB_REDUCEDOT 21504 //11776  /* bit to trace reducedot() */
+#define DB_REDUCEDOT    21504 //11776  /* bit to trace reducedot() */
 #define DB_ARRAYREF     22528 //12288  /* bit to trace arrayref() */
 #define DB_DOPOINT      23552 //12800  /* bit to trace dopoint() */
-#define DB_INSTARRAY 24576 //13312  /* bit to trace instarray() */
-#define DB_NCONC     25600 //13824  /* bit to trace nconc() */
+#define DB_INSTARRAY    24576 //13312  /* bit to trace instarray() */
+#define DB_NCONC        25600 //13824  /* bit to trace nconc() */
 #define DB_MAKEINTC     26624 //14336  /* bit to trace makeintc() */
 #define DB_APPENDST     27648 //14848  /* bit to trace appendst() */
-#define DB_DOGOTO    28672 //15360  /* bit to trace dogoto() */
+#define DB_DOGOTO       28672 //15360  /* bit to trace dogoto() */
 #define DB_DOLABEL      29696 //15872  /* bit to trace dolabel() */
-#define DB_INSTLABEL 30720 //16384  /* bit to trace instlabel() */
+#define DB_INSTLABEL    30720 //16384  /* bit to trace instlabel() */
 #define DB_SETTOKTYPE   31744 //16896  /* bit to trace settoktype() */
 #define DB_MAKESUBRANGE 32768 //17408  /* bit to trace makesubrange() */
 
 #define DEBUG (DB_MAKESUBRANGE * 2 - 1) & DEBUG_MASTER_SWITCH * (DB_MAKESUBRANGE * 2 - 1)    /* mask */
 
-#define DB_PRINT_ARGS      0     /* print function arguments */
 
 #define GEN_OUTPUT         1    /* write to output file (extension .out) */
 
+/*  Note: you should add to the above values and insert debugging
+   printouts in your routines similar to those that are shown here.     */
 
+/* Maximum double */
+#define DBL_MAX 1.7976931348623157e+308
+/* Minimum normalised double */
+#define DBL_MIN 2.2250738585072014e-308
+/* Maximum float */
+#define FLT_MAX 3.40282347e+38F
+/* Minimum normalised float */
+#define FLT_MIN 1.17549435e-38F
+
+#define INT_MAX 2147483647
+#define INT_MIN -2147483648
+
+
+#endif   /* PARSE_H */

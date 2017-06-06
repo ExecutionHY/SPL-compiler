@@ -1,21 +1,24 @@
 /**********************************************************
- *	File:		token.l
+ *	File:		token.h
  *	Project:	SPL-compiler
  *	Author:		Execution
  *	Modified:	Jun 3, 2017
  **********************************************************/
 
+#ifndef TOKEN_H
+#define TOKEN_H
+
 /* token data structure */
 typedef struct tokn {
-	int    tokenType;  /* OPERATOR, DELIMITER, RESERVED, etc */
-	int    dataType;   /* TYPE, REAL, STRINGTYPE, BOOLETYPE */
-	struct symtbr * symType;
-	struct symtbr * symEntry;
-	struct tokn * operands;
-	struct tokn * link;
+	int		tokenType;  /* OPERATOR, DELIMITER, RESERVED, etc */
+	int		which;		/* which token */
+	int		dataType;   /* TYPE, REAL, STRINGTYPE, BOOLETYPE */
+	struct	symtbr * symType;
+	struct	symtbr * symEntry;
+	struct	tokn * operands;
+	struct	tokn * link;
 	union {
 		char tokenString[16];   /* values of different types, overlapped */
-		int which;
 		int intNum;
 		char ch;
 		double realNum;
@@ -24,7 +27,7 @@ typedef struct tokn {
 
 /* The following alternative kinds of values share storage in the token
    record.  Only one of the following can be present in a given token.  */
-#define whichval  tokenval.which
+#define whichval  which
 #define intval    tokenval.intNum
 #define realval   tokenval.realNum
 #define stringval tokenval.tokenString
@@ -38,24 +41,29 @@ typedef struct tokn {
 #define TOKEN_NUM      5
 #define TOKEN_CHAR     6
 
-#define OP_PLUS			1         /* operator numbers */
-#define OP_MINUS		2
-#define OP_MUL			3
-#define OP_DIVIDE		4
-#define OP_ASSIGN		5
-#define OP_EQ			6
-#define OP_NE			7
-#define OP_LT			8
-#define OP_LE			9
-#define OP_GE			10
-#define OP_GT			11
-#define OP_POINTER		12
-#define OP_DOT			13
-#define OP_AND			14
-#define OP_OR			15
-#define OP_NOT			16
-#define OP_DIV			17
-#define OP_MOD			18
+/* basic operators */
+/* these 17 definitions will not directly used,
+	but will reflect on pprint.c[opprint] */
+#define OP_DOT 		1
+#define OP_PLUS 	2
+#define OP_MINUS 	3
+#define OP_MUL 		4
+#define OP_DIV_R 	5
+#define OP_LT 		6
+#define OP_LE 		7
+#define OP_EQ 		8
+#define OP_NE 		9
+#define OP_GT 		10
+#define OP_GE 		11
+#define OP_ASSIGN 	12
+#define OP_AND 		13
+#define OP_OR 		14
+#define OP_NOT 		15
+#define OP_DIV 		16
+#define OP_MOD 		17
+
+/* other operators - from reserved words */
+#define OP_POINTER		18
 #define OP_IN			19
 #define OP_IF			20
 #define OP_GOTO			21
@@ -87,6 +95,7 @@ typedef struct tokn {
 #define COMMA 268
 #define COLON 269
 #define SEMI 270
+
 #define DOT 271
 #define PLUS 272
 #define MINUS 273
@@ -104,6 +113,7 @@ typedef struct tokn {
 #define NOT 285
 #define DIV 286
 #define MOD 287
+
 #define ARRAY 288
 #define BEGIN_T 289
 #define CASE 290
@@ -141,8 +151,9 @@ typedef struct tokn {
 #define OPERATOR_BIAS (DOT - 1)
 #define RESERVED_BIAS (ARRAY - 1)
 
+#ifndef YYTOKENTYPE
 #define YYTOKENTYPE 0
-
+#endif
 
 /* A struct to be used as a linked list for tokens.
    Used in this program to keep track of all tokens
@@ -154,5 +165,5 @@ typedef struct toknode {
 	struct toknode *next;
 } *TOKENNODE;
 
-
+#endif	/* TOKEN_H */
 

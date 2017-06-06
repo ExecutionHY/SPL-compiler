@@ -1,8 +1,8 @@
 /**********************************************************
- *  File:   pprint.c
- *  Project:  SPL-compiler
- *  Author:   Execution
- *  Modified: Jun 3, 2017
+ *  File:		pprint.c
+ *  Project:	SPL-compiler
+ *  Author:		Execution
+ *  Modified:	Jun 3, 2017
  **********************************************************/
 
 #include <ctype.h>
@@ -11,21 +11,25 @@
 #include "lexan.h"
 #include "symtab.h"
 #include "parse.h"
+#include "pprint.h"
 
 #define PRINTEXPRDEBUG 0     /* Set to 1 to print each node in printexpr */
 
-char* opprint[]  = {" ", "+", "-", "*", "/", ":=", "=", "<>", "<", "<=",
-					">=", ">",  "^", ".", "and", "or", "not", "div", "mod",
-					"in", "if", "goto", "progn", "label", "funcall",
-					"aref", "program", "float", "fix",
+char* opprint[]  = {
+	" ", ".", "+", "-", "*", "/",
+	"<", "<=", "=", "<>", ">", ">=", ":=",
+    "and", "or", "not", "div", "mod", "^",
+    "in", "if", "goto", "progn", "label", "funcall",
+    "aref", "program", "float", "fix",
+};
 
-					};
-int opsize[] = {1, 1, 1, 1, 1, 2, 1, 2, 1, 2,
-				2, 1, 1, 1, 3, 2, 3, 3, 3,
-				2, 2, 4, 5, 5, 7,
-				4, 7, 5, 3,
-
-				};
+int opsize[] = {
+	1, 1, 1, 1, 1, 1,
+	1, 2, 1, 2, 1, 2, 2,
+	3, 2, 3, 3, 3, 1,
+	2, 2, 4, 5, 5, 7,
+	4, 7, 5, 3,
+};
 
 /* print a token for debugging */
 void debugprinttok(TOKEN tok) {
@@ -380,19 +384,4 @@ void dbugprintlinks(TOKEN idlist) {
 void dbugprintoperands(TOKEN idlist) {
   dbugprintlinks(idlist);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

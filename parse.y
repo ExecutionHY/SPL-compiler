@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#include <string.h>
 #include "token.h"
 #include "lexan.h"
 #include "symtab.h"
@@ -20,20 +21,8 @@
 
 #define YYSTYPE TOKEN
 
-/* Maximum double */
-#define DBL_MAX 1.7976931348623157e+308
-/* Minimum normalised double */
-#define DBL_MIN 2.2250738585072014e-308
-/* Maximum float */
-#define FLT_MAX 3.40282347e+38F
-/* Minimum normalised float */
-#define FLT_MIN 1.17549435e-38F
-
-#define INT_MAX 2147483647
-#define INT_MIN -2147483648
-
-extern int lineCnt;
 TOKEN parseresult;
+extern int lineCnt;
 
 %}
 
@@ -73,7 +62,7 @@ const_part		: CONST const_expr_list				{ $$ = NULL; }		// TODO
 				;
 const_expr_list	: const_expr_list ID EQ const_value SEMI
 													{ $$ = NULL; }
-				| ID EQ const_value SEMI			{ $$ = NULL;}
+				| ID EQ const_value SEMI			{ $$ = NULL; }
 				;
 const_value		: CONST_INT							{ $$ = $1; }
 				| CONST_REAL						{ $$ = $1; }
@@ -94,7 +83,7 @@ type_decl		: simple_type_decl					{ $$ = $1; }
 				| array_type_decl					{ $$ = $1; }
 				| record_type_decl					{ $$ = $1; }
 				;
-simple_type_decl: SYS_TYPE							{ $$ = $1; }
+simple_type_decl: SYS_TYPE							{ $$ = findtype($1); }
 				| ID								{ $$ = NULL; }
 				| LP name_list RP					{ $$ = NULL; }
 				| const_value DOTDOT const_value	{ $$ = NULL; }
@@ -194,24 +183,24 @@ expression		: expression GE expr				{ $$ = NULL; }
 				| expression LT expr				{ $$ = NULL; }
 				| expression EQ expr				{ $$ = NULL; }
 				| expression NE expr				{ $$ = NULL; }
-				| expr								{ $$ = NULL; }
+				| expr								{ $$ = $1; }
 				;
 expr			: expr PLUS term					{ $$ = NULL; }
 				| expr MINUS term					{ $$ = NULL; }
 				| expr OR term						{ $$ = NULL; }
-				| term								{ $$ = NULL; }
+				| term								{ $$ = $1; }
 				;
 term			: term MUL factor					{ $$ = NULL; }
 				| term DIV factor					{ $$ = NULL; }
 				| term MOD factor					{ $$ = NULL; }
 				| term AND factor					{ $$ = NULL; }
-				| factor							{ $$ = NULL; }
+				| factor							{ $$ = $1; }
 				;
 factor			: ID								{ $$ = NULL; }
 				| ID LP args_list RP				{ $$ = NULL; }
 				| SYS_FUNCT							{ $$ = NULL; }
 				| SYS_FUNCT LP args_list RP			{ $$ = NULL; }
-				| const_value						{ $$ = NULL; }
+				| const_value						{ $$ = $1; }
 				| LP expression RP					{ $$ = NULL; }
 				| NOT factor						{ $$ = NULL; }
 				| MINUS factor						{ $$ = NULL; }
@@ -223,27 +212,23 @@ args_list		: args_list COMMA expression		{ $$ = NULL; }
 
 %%
 
-#define NUM_COERCE_IMPLICIT	1
 
-#define ELIM_NESTED_PROGN 	1		/* disables makepnb() functionality and defaults to makeprogn() if 0 */
+/* See parse.h for all debug constants */
 
-#define DEBUG_MASTER_SWITCH	0		/* 1 for true, 0 for false  */
+int labelnumber = 0;  /* sequential counter for internal label numbers */
+int debug_call_num = 0;	/* sequential counter for finding a specific place during program execution */
+char *last_method = "yyparse()"; 	/* the method that called the currently-executing method, if applicable */
 
-
-
- int labelnumber = 0;  /* sequential counter for internal label numbers */
-
-/*  Note: you should add to the above values and insert debugging
-   printouts in your routines similar to those that are shown here.     */
 
 TOKEN makeProgram(TOKEN program_name, TOKEN routine) {
 	if (DEBUG & DB_MAKEPROGRAM) {
-		printf("In makeProgram():\n");
-		dbugprinttok(program_name);
-		dbugprinttok(routine);
+		printf("(%d)\n", debug_call_num++);
+		printf("In makeProgram(),\n");
+		dbugprint2toks(program_name, routine);
+		last_method = "makeProgram()";
 	}
 	
-	TOKEN program = makeop(OP_PROGRAM);		//26
+	TOKEN program = makeop(OP_PROGRAM);    //26
 	if (!program) {
 		printf("Error: failed to alloc TOKEN in makeProgram().\n");
 		return NULL;
@@ -279,10 +264,6 @@ TOKEN cons(TOKEN list, TOKEN item) {
 	return item;
 }
 
-
-int debug_call_num = 0;	/* sequential counter for finding a specific place during program execution */
-char *last_method = "makeprogram()"; 	/* the method that called the currently-executing method, if applicable */
-
 /* arrayref processes an array reference a[i]
  subs is a list of subscript expressions.
  tok and tokb are (now) unused tokens that are recycled. */
@@ -308,7 +289,7 @@ TOKEN arrayref(TOKEN arr, TOKEN tok, TOKEN subs, TOKEN tokb) {
 	temp = arr_varsym->dataType;
 	
 	int counter = 0;
-	int num_arr_dims = 0;	// not being used for anything
+	int num_arr_dims = 0;   // not being used for anything
 	
 	/* Store the SYM_ARRAYs into an array */
 	while (temp && temp->kind != SYM_TYPE) {
@@ -334,7 +315,7 @@ TOKEN arrayref(TOKEN arr, TOKEN tok, TOKEN subs, TOKEN tokb) {
 	
 	while (curr_sub) {
 		
-		if (counter == 0) {		// first iteration; need to make aref
+		if (counter == 0) {     // first iteration; need to make aref
 			SYMBOL curr_sym = arrsyms[counter];
 			int curr_size = curr_sym->size / (curr_sym->highBound - curr_sym->lowBound + 1);
 			
@@ -357,7 +338,7 @@ TOKEN arrayref(TOKEN arr, TOKEN tok, TOKEN subs, TOKEN tokb) {
 		}
 		else {
 			
-			if (curr_sub->tokenType == TOKEN_NUM) {		// smash constants (optimization)
+			if (curr_sub->tokenType == TOKEN_NUM) {      // smash constants (optimization)
 				TOKEN add_to = array_ref->operands->link->operands;
 				add_to = addint(add_to, makeintc(curr_sub->whichval * typesym->size), NULL);
 			}
@@ -408,7 +389,7 @@ TOKEN instarray(TOKEN bounds, TOKEN typetok) {
 		printf("(%d)\n", debug_call_num++);
 		printf("In instarray(), from %s\n", last_method);
 		dbugprint2args(bounds, typetok);
-		//		dbprsymbol(typetok->symType);
+		//    dbprsymbol(typetok->symType);
 		last_method = "instarray()";
 	}
 	
@@ -421,8 +402,8 @@ TOKEN instarray(TOKEN bounds, TOKEN typetok) {
 	int low, high;
 	
 	// if (!typesym) {
-	// 	printf(" Error: array \"%s\" not found in symbol table, instarray().\n", typetok->stringval);
-	// 	return NULL;
+	//    printf(" Error: array \"%s\" not found in symbol table, instarray().\n", typetok->stringval);
+	//    return NULL;
 	// }
 	
 	while (curr_bound) {
@@ -433,7 +414,7 @@ TOKEN instarray(TOKEN bounds, TOKEN typetok) {
 			arrsym->dataType = typesym;
 		}
 		else {
-			//			arrsym->basicType = typetok->dataType;
+			//       arrsym->basicType = typetok->dataType;
 		}
 		
 		low = curr_bound->symType->lowBound;
@@ -480,7 +461,7 @@ TOKEN instrec(TOKEN rectok, TOKEN argstok) {
 	recsym->kind = SYM_RECORD;
 	rectok->symType = recsym;
 	recsym->dataType = argstok->symType;
-	offset = wordaddress(argstok->symType->size, 8);	// TODO: test this w/ something size 8
+	offset = wordaddress(argstok->symType->size, 8);   // TODO: test this w/ something size 8
 	total_size = offset;
 	
 	if (DEBUG & DB_INSTREC) {
@@ -533,7 +514,7 @@ void insttype(TOKEN typename, TOKEN typetok) {
 	
 	typesym = typetok->symType;
 	
-	sym = searchins(typename->stringval);	// insert if not found
+	sym = searchins(typename->stringval);  // insert if not found
 	sym->kind = SYM_TYPE;
 	sym->size = typesym->size;
 	sym->dataType = typesym;
@@ -573,7 +554,7 @@ TOKEN makesubrange(TOKEN tok, int low, int high) {
 	subrange_entry->basicType = TYPE_INT;
 	subrange_entry->lowBound = low;
 	subrange_entry->highBound = high;
-	subrange_entry->size = basicsizes[TYPE_INT];	// each entry is a constant (int)
+	subrange_entry->size = basicsizes[TYPE_INT]; // each entry is a constant (int)
 	
 	out->symType = subrange_entry;
 	
@@ -872,7 +853,7 @@ TOKEN addoffs(TOKEN exp, TOKEN off) {
 TOKEN binop(TOKEN op, TOKEN lhs, TOKEN rhs) {
 	
 	if (DEBUG & DB_BINOP) {
-		printf("(%d)\n", debug_call_num++);
+		printf("(%d) line: %d\n", debug_call_num++, lineCnt);
 		printf("In binop(), from %s\n", last_method);
 		dbugprint3args(op, lhs, rhs);
 		last_method = "binop()";
@@ -883,21 +864,22 @@ TOKEN binop(TOKEN op, TOKEN lhs, TOKEN rhs) {
 	int op_type = op->whichval;
 	
 	/* Type checking/coercion needed. */
+	
 	if (lhs_dataType != rhs_dataType) {
 		op = binop_type_coerce(op, lhs, rhs);
 	}
 	else {
 		op->dataType = lhs->dataType;
-		op->operands = lhs;		// link operands to operator
-		lhs->link = rhs;		// link second operand to first
-		rhs->link = NULL;		// terminate operand list
+		op->operands = lhs;     // link operands to operator
+		lhs->link = rhs;     // link second operand to first
+		rhs->link = NULL;    // terminate operand list
 	}
 	
 	if (DEBUG & DB_BINOP) {
 		printf(" Finished binop().\n");
 		dbugprint1tok(op);
 		last_method = "binop()";
-		//		ppexpr(op);
+		//    ppexpr(op);
 	}
 	
 	return op;
@@ -946,9 +928,9 @@ TOKEN binop_type_coerce(TOKEN op, TOKEN lhs, TOKEN rhs) {
 	}
 	else {
 		op->dataType = lhs->dataType;
-		op->operands = lhs;		// link operands to operator
-		lhs->link = rhs;		// link second operand to first
-		rhs->link = NULL;		// terminate operand list
+		op->operands = lhs;     // link operands to operator
+		lhs->link = rhs;     // link second operand to first
+		rhs->link = NULL;    // terminate operand list
 	}
 	
 	return op;
@@ -1059,7 +1041,7 @@ TOKEN dolabel(TOKEN labeltok, TOKEN tok, TOKEN statement) {
 	
 	TOKEN do_progn_tok = makeop(OP_PROGN);
 	TOKEN label_tok = makeop(OP_LABEL);
-	//	TOKEN do_progn_tok = makeprogn(makeop(OP_PROGN), makeop(OP_LABEL));	// second arg will never be progn, so skip makepnb()
+	// TOKEN do_progn_tok = makeprogn(makeop(OP_PROGN), makeop(OP_LABEL));  // second arg will never be progn, so skip makepnb()
 	TOKEN label_num_tok = makeintc(internal_label_num);
 	
 	if (!do_progn_tok || !label_tok || !label_num_tok) {
@@ -1155,14 +1137,14 @@ TOKEN findid(TOKEN tok) {
 TOKEN findtype(TOKEN tok) {
 	
 	if (DEBUG & DB_FINDTYPE) {
-		printf("(%d)\n", debug_call_num++);
+		printf("(%d) line: %d\n", debug_call_num++, lineCnt);
 		printf("In findtype(), from %s\n", last_method);
 		dbugprint1arg(tok);
 		last_method = "findtype()";
 	}
 	
 	SYMBOL sym, typ;
-	//	sym = searchins(tok->stringval);	// triggers segfault
+	// sym = searchins(tok->stringval); // triggers segfault
 	sym = searchst(tok->stringval);
 	
 	if (!sym) {
@@ -1241,13 +1223,13 @@ void instconst(TOKEN idtok, TOKEN consttok) {
 	sym->kind = SYM_CONST;
 	sym->basicType = consttok->dataType;
 	
-	if (sym->basicType == TYPE_INT) {		// INTEGER
+	if (sym->basicType == TYPE_INT) {      // INTEGER
 		sym->constval.intNum = consttok->intval;
-		sym->size = basicsizes[TYPE_INT];	// 4
+		sym->size = basicsizes[TYPE_INT];   // 4
 	}
-	else if (sym->basicType == TYPE_REAL) {	// REAL
+	else if (sym->basicType == TYPE_REAL) {   // REAL
 		sym->constval.realNum = consttok->realval;
-		sym->size = basicsizes[TYPE_REAL];	// 8
+		sym->size = basicsizes[TYPE_REAL];  // 8
 	}
 	else if (sym->basicType == TYPE_STR) {
 		strncpy(sym->constval.stringConst, consttok->stringval, 16);
@@ -1324,7 +1306,7 @@ void instlabel (TOKEN num) {
 		last_method = "instlabel()";
 	}
 	
-	//	insert_label(labelnumber++, num->intval);
+	// insert_label(labelnumber++, num->intval);
 	insert_label(labelnumber++, num);
 	
 	if (DEBUG & DB_INSTLABEL) {
@@ -1341,7 +1323,7 @@ void instlabel (TOKEN num) {
 void instvars(TOKEN idlist, TOKEN typetok) {
 	
 	if (DEBUG & DB_INSTVARS) {
-		printf("(%d)\n", debug_call_num++);
+		printf("(%d) line: %d\n", debug_call_num++, lineCnt);
 		printf("In instvars(), from %s\n", last_method);
 		printf(" typetok: ");
 		ppexpr(typetok);
@@ -1424,7 +1406,7 @@ TOKEN makefix(TOKEN tok) {
 		last_method = "makefix()";
 	}
 	
-	TOKEN out = makeop(OP_FIX);	// create OP_FIX TOKEN
+	TOKEN out = makeop(OP_FIX);   // create OP_FIX TOKEN
 	if (!out) {
 		printf(" Failed to alloc TOKEN, makefix().\n");
 		return NULL;
@@ -1513,10 +1495,10 @@ TOKEN endexpr, TOKEN tokc, TOKEN statement) {
 		return NULL;
 	}
 	
-	goto_tok = makegoto(label_tok->operands->intval);	// TODO: not null-checked
+	goto_tok = makegoto(label_tok->operands->intval);  // TODO: not null-checked
 	
 	if (sign == -1) {
-		stop_op_tok->whichval = OP_GE;	// "downto"
+		stop_op_tok->whichval = OP_GE;   // "downto"
 	}
 	
 	/* Link all the tokens together. */
@@ -1530,7 +1512,7 @@ TOKEN endexpr, TOKEN tokc, TOKEN statement) {
 		do_progn_tok->operands = statement;
 		statement->link = stmt_incr_tok;
 	}
-	else {	// do_progn_tok == statement
+	else {   // do_progn_tok == statement
 		get_last_link(do_progn_tok->operands)->link = stmt_incr_tok;
 	}
 	stmt_incr_tok->link = goto_tok;
@@ -1559,9 +1541,9 @@ TOKEN makefuncall(TOKEN tok, TOKEN fn, TOKEN args) {
 	
 	if (strcmp(fn->stringval, "new") != 0) {
 		
-		funcall_tok = makeop(OP_FUNCALL);		// 24
+		funcall_tok = makeop(OP_FUNCALL);      // 24
 		if (!funcall_tok) {
-			printf(" Failed to allocate TOKEN, makefuncall().\n");	// according to the Prof, print message and coredump
+			printf(" Failed to allocate TOKEN, makefuncall().\n");   // according to the Prof, print message and coredump
 			return NULL;
 		}
 		
@@ -1609,7 +1591,7 @@ TOKEN makefuncall(TOKEN tok, TOKEN fn, TOKEN args) {
 	if (DEBUG & DB_MAKEFUNCALL) {
 		printf(" Finished makefuncall().\n");
 		dbugprint3toks(funcall_tok, funcall_tok->operands, funcall_tok->operands->link);
-		//		ppexpr(funcall_tok);
+		//    ppexpr(funcall_tok);
 		last_method = "makefuncall()";
 	}
 	
@@ -1640,7 +1622,7 @@ TOKEN makegoto(int label) {
 		return NULL;
 	}
 	
-	goto_tok->operands = goto_num_tok;	// operand together
+	goto_tok->operands = goto_num_tok;  // operand together
 	
 	if (DEBUG & DB_MAKEGOTO) {
 		printf(" Finished makegoto().\n");
@@ -1662,7 +1644,7 @@ TOKEN makeif(TOKEN tok, TOKEN exp, TOKEN thenpart, TOKEN elsepart) {
 		last_method = "makeif()";
 	}
 	
-	tok->tokenType = OPERATOR;	/* Make it look like an operator. */
+	tok->tokenType = OPERATOR; /* Make it look like an operator. */
 	tok->whichval = OP_IF;
 	
 	if (elsepart != NULL) {
@@ -1721,14 +1703,14 @@ TOKEN makelabel() {
 	}
 	
 	TOKEN label_tok = makeop(OP_LABEL);
-	TOKEN label_num_tok = makeintc(labelnumber++);	// increment it after creation
+	TOKEN label_num_tok = makeintc(labelnumber++);  // increment it after creation
 	
 	if (!label_tok || !label_num_tok) {
 		printf(" Failed to alloc TOKEN(s), makelabel().\n");
 		return NULL;
 	}
 	
-	label_tok->operands = label_num_tok;	// operand together
+	label_tok->operands = label_num_tok;   // operand together
 	
 	if (DEBUG & DB_MAKELABEL) {
 		printf(" Finished makelabel().\n");
@@ -1748,7 +1730,7 @@ TOKEN makeloopincr(TOKEN var, int incr_amt) {
 	
 	TOKEN assignop = makeop(OP_ASSIGN);
 	TOKEN var_cpy = copytok(var);
-	TOKEN plusop = makeplus(copytok(var), makeintc(incr_amt), NULL);	// OP_PLUS operand "var" link amt
+	TOKEN plusop = makeplus(copytok(var), makeintc(incr_amt), NULL);  // OP_PLUS operand "var" link amt
 	
 	assignop->operands = var_cpy;
 	var_cpy->link = plusop;
@@ -1864,8 +1846,8 @@ TOKEN makeprogn(TOKEN tok, TOKEN statements) {
 		last_method = "makeprogn()";
 	}
 	
-	tok->tokenType = OPERATOR;		// 0
-	tok->whichval = OP_PROGN;		// 22
+	tok->tokenType = OPERATOR;    // 0
+	tok->whichval = OP_PROGN;     // 22
 	tok->operands = statements;
 	
 	if (DEBUG & DB_MAKEPROGN) {
@@ -1905,7 +1887,7 @@ TOKEN makerepeat(TOKEN tok, TOKEN statements, TOKEN tokb, TOKEN expr) {
 	
 	TOKEN label_tok = makelabel();
 	TOKEN goto_tok = makegoto(label_tok->operands->intval);
-	TOKEN rpt_progn_tok = makepnb(talloc(), label_tok);	// operand label_tok to rpt_progn_tok
+	TOKEN rpt_progn_tok = makepnb(talloc(), label_tok);   // operand label_tok to rpt_progn_tok
 	TOKEN do_progn_tok = makeop(OP_PROGN);
 	TOKEN ifop_tok = makeif(makeop(OP_IF), expr, do_progn_tok, NULL);
 	
@@ -1944,8 +1926,8 @@ TOKEN makewhile(TOKEN tok, TOKEN expr, TOKEN tokb, TOKEN statement) {
 	
 	TOKEN label_tok = makelabel();
 	TOKEN goto_tok = makegoto(label_tok->operands->intval);
-	TOKEN while_progn_tok = makepnb(talloc(), label_tok);	// operand label_tok to while_progn_tok
-	TOKEN do_progn_tok = makepnb(talloc(), statement);		// operand statement to do_progn_tok
+	TOKEN while_progn_tok = makepnb(talloc(), label_tok); // operand label_tok to while_progn_tok
+	TOKEN do_progn_tok = makepnb(talloc(), statement);    // operand statement to do_progn_tok
 	TOKEN ifop_tok = makeif(makeop(OP_IF), expr, do_progn_tok, NULL);
 	
 	if (!label_tok || !goto_tok || !while_progn_tok ||
@@ -1961,7 +1943,7 @@ TOKEN makewhile(TOKEN tok, TOKEN expr, TOKEN tokb, TOKEN statement) {
 		do_progn_tok->operands = statement;
 		statement->link = goto_tok;
 	}
-	else {	// do_progn_tok == statement
+	else {   // do_progn_tok == statement
 		get_last_link(do_progn_tok->operands)->link = goto_tok;
 	}
 	
@@ -2043,7 +2025,8 @@ void settoktype(TOKEN tok, SYMBOL typ, SYMBOL ent) {
 	if (DEBUG & DB_SETTOKTYPE) {
 		printf("(%d)\n", debug_call_num++);
 		printf("In settoktype(), from %s\n", last_method);
-		dbugprint3args(tok, typ, ent);
+		dbugprint1arg(tok);
+		dbugprint2syms(typ, ent);
 		last_method = "settoktype()";
 	}
 	
@@ -2153,8 +2136,10 @@ TOKEN write_fxn_args_type_check(TOKEN fn, TOKEN args) {
 }
 
 
-yyerror(s) char *s; {
+
+int yyerror(s) char *s; {
 	fprintf(stderr, "Parse Error at line %d: %s\n", lineCnt, s);
+	return 0;
 }
 
 int main() {

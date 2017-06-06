@@ -1,36 +1,14 @@
-/* symtab.h            Gordon S. Novak Jr.           ; 10 Oct 16 */
+/**********************************************************
+ *	File:		symtab.h
+ *	Project:	SPL-compiler
+ *	Author:		Execution
+ *	Modified:	Jun 6, 2017
+ **********************************************************/
 
-/* Symbol Table Record and Definitions */
+#ifndef SYMTAB_H
+#define SYMTAB_H
 
-/* Copyright (c) 2016 Gordon S. Novak Jr. and
-   The University of Texas at Austin. */
-
-/* 
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation; either version 2 of the License, or
- (at your option) any later version.
-
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with this program; if not, see <http://www.gnu.org/licenses/>.
- */
-
-/* 21 Feb 07; 01 Aug 12; 03 Aug 12; 24 Dec 12
-
- */
-
-/* The symbol table is designed to handle a tree of symbols, with
-   inheritance of symbols from parent scopes of the tree.
-   Each 'level' is one node (lexical scope) of the tree.
-   For the class project, there are only two levels:
-     level 0: symbols such as integer, real, sin, ... known to the compiler
-     level 1: symbols of the Pascal program
- */
+#include "token.h"
 
 /* Define kinds of symbols.  The kind field should be one of these. */
 #define SYM_ARGM		0
@@ -122,4 +100,9 @@ int blockoffs[MAXBLOCKS];  /* Storage offsets for each block         */
 int basicsizes[5];
 
 
+int user_label_exists(TOKEN label_tok);
+int get_internal_label_num(int external_label_num);
+void insert_label(int internal_label_num, TOKEN label_tok);
 
+
+#endif	/* SYMTAB_H */

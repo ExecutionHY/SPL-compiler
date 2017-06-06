@@ -8,6 +8,7 @@
 %{
 #include <ctype.h>
 #include <stdio.h>
+#include <string.h>
 #include "token.h"
 #include "lexan.h"
 
@@ -18,7 +19,7 @@ int install_real();
 int install_int();
 int install_str();
 int yywrap();
-int lexError();
+void lexError();
 
 /* If the lex yytext buffer turns out to be too small to hold comments,
    add the following lines:
@@ -140,7 +141,7 @@ Z [Zz]
 
 true|false|maxint { return maketoken(RESERVED, SYS_CON); }
 abs|chr|odd|ord|pred|sqr|sqrt|succ { return maketoken(RESERVED, SYS_FUNCT); }
-write|writeln { return maketoken(RESERVED, SYS_PROC); }
+write|writeln|read { return maketoken(RESERVED, SYS_PROC); }
 integer|boolean|char|real|string { return maketoken(RESERVED, SYS_TYPE); }
 
 {id}		{ return install_id(); }
@@ -176,6 +177,14 @@ int maketoken(int type, int which) {
 	
 	if (type == RESERVED) {
 		yylval->whichval = which - RESERVED_BIAS;
+		/* store those strings */
+		if (which == SYS_CON || which == SYS_FUNCT || which == SYS_PROC || which == SYS_TYPE) {
+			int i;
+			for (i = 0; i < yyleng; i++) {
+				yylval->stringval[i] = tolower(yytext[i]);
+			}
+			yylval->stringval[yyleng] = '\0';
+		}
 	}
 	else if (type == OPERATOR) {
 		yylval->whichval = which - OPERATOR_BIAS;
@@ -256,7 +265,7 @@ int install_int() {
 	yylval->intval = num;
 	return CONST_INT;
 }
-int lexError() {
+void lexError() {
 	printf("Lexical Analysis Error at line %d\n", lineCnt);
 }
 

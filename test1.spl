@@ -1,5 +1,7 @@
 program graph1;
+var
+	a: integer;
 begin
-a := 1;
+	a := 1;
 end
 .

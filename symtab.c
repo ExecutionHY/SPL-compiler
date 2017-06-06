@@ -8,20 +8,12 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "symtab.h"
 #include "token.h"
 
-
-
-int user_label_exists(TOKEN label_tok);
-int get_internal_label_num(int external_label_num);
-void insert_label(int internal_label_num, TOKEN label_tok);
-
-
 TOKENNODE user_labels = NULL;
 TOKENNODE curr_label = NULL;
-
-
 
 
 /* BASEOFFSET is the offset for the first variable */
@@ -140,7 +132,7 @@ void pprintsym(SYMBOL sym, int col) {
 	switch (sym->kind) {
 		case SYM_BASIC:
 			printf("%s", sym->nameString);
-			nextcol = col + 1 + strlength(sym->nameString);
+			nextcol = col + 1 + strlen(sym->nameString);
 			break;
 		case SYM_SUBRANGE:
 			printf("%3d ..%4d", sym->lowBound, sym->highBound);
@@ -167,7 +159,7 @@ void pprintsym(SYMBOL sym, int col) {
 			}
 			if ( sym->kind == SYM_RECORD ) {
 				printf("(%s ", opnds->nameString);
-				pprintsym(opnds, nextcol + 2 + strlength(opnds->nameString));
+				pprintsym(opnds, nextcol + 2 + strlen(opnds->nameString));
 				printf(")");
 			}
 			else pprintsym(opnds, nextcol);
