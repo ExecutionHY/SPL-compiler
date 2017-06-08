@@ -14,7 +14,7 @@ SPL is a Simple Pascal Language.
 
 ## Part 1
 
-Lexical Analyzer - lever
+Lexical Analyzer - lexer
 
 #### New Files
 

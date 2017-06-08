@@ -1,4 +1,12 @@
 program graph1;
+
+var a : integer;
+begin
+	a := 1;
+end
+.
+
+{
 const
 	one = 1;
 type
@@ -36,3 +44,4 @@ begin
 
 end
 .
+}

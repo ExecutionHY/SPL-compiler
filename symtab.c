@@ -96,7 +96,7 @@ SYMBOL searchst(char name[]){
 		if (level > 0) level = contblock[level]; /* try containing block */
 		else level = -1;                      /* until all are tried  */
 	}
-	if (DEBUG_SYMTAB) printf("searchst %8s %ld at level %dn",
+	if (DEBUG_SYMTAB) printf("searchst %8s %ld at level %d\n",
 		name, (long) sym, level);
 	return sym;
 }

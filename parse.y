@@ -156,7 +156,7 @@ routine_body	: compound_stmt						{ $$ = $1; }
 compound_stmt	: BEGIN_T stmt_list END				{ $$ = makePnb($1, $2); }
 				;
 stmt_list		: stmt_list stmt SEMI				{ $$ = cons($1, $2); }
-				| // empty
+				| /* empty*/						{ $$ = NULL; }
 				;
 stmt			: CONST_INT COLON non_label_stmt	{ $$ = doLabel($1, $2, $3); }	// TODO: bug
 				| non_label_stmt					{ $$ = $1; }

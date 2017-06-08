@@ -1,5 +1,5 @@
 /**********************************************************
- * File:    	mainparser.c
+ * File:    	maincompiler.c
  * Project: 	SPL-compiler
  * Author:		Execution
  * Modified:	Jun 6, 2017
@@ -13,18 +13,20 @@
 #include "symtab.h"
 #include "parse.h"
 #include "pprint.h"
+#include "codegen.h"
+#include "genasm.h"
 
 extern TOKEN parseresult;
+extern int labelnumber;
 
 int main() {
 
 	int res;
 	initsyms();
 	res = yyparse();
-	printst();
+	//printst();
 	printf("yyparse result = %8d\n", res);
-	if (DEBUG & DB_PARSERES) dbugprinttok(parseresult);
-	ppexpr(parseresult);           /* Pretty-print the result tree */
-
+	ppexpr(parseresult); 
+	gencode(parseresult, blockoffs[blocknumber], labelnumber);
 	return 0;
 }
