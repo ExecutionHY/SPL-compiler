@@ -141,7 +141,7 @@ Z [Zz]
 
 true|false|maxint { return maketoken(RESERVED, SYS_CON); }
 abs|chr|odd|ord|pred|sqr|sqrt|succ { return maketoken(RESERVED, SYS_FUNCT); }
-write|writeln|read { return maketoken(RESERVED, SYS_PROC); }
+write|writeln { return maketoken(RESERVED, SYS_PROC); }
 integer|boolean|char|real|string { return maketoken(RESERVED, SYS_TYPE); }
 
 {id}		{ return install_id(); }
@@ -178,13 +178,13 @@ int maketoken(int type, int which) {
 	if (type == RESERVED) {
 		yylval->whichval = which - RESERVED_BIAS;
 		/* store those strings */
-		if (which == SYS_CON || which == SYS_FUNCT || which == SYS_PROC || which == SYS_TYPE) {
-			int i;
-			for (i = 0; i < yyleng; i++) {
-				yylval->stringval[i] = tolower(yytext[i]);
-			}
-			yylval->stringval[yyleng] = '\0';
+		int i;
+		for (i = 0; i < yyleng; i++) {
+			yylval->stringval[i] = tolower(yytext[i]);
 		}
+		yylval->stringval[yyleng] = '\0';
+
+		//if (which == SYS_CON || which == SYS_FUNCT || which == SYS_PROC || which == SYS_TYPE)
 	}
 	else if (type == OPERATOR) {
 		yylval->whichval = which - OPERATOR_BIAS;

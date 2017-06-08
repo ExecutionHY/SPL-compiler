@@ -14,11 +14,12 @@ SPL is a Simple Pascal Language.
 
 ## Part 1
 
-Lexical Analyzer
+Lexical Analyzer - lever
 
 #### New Files
 
 - lexan.l
+- mainliner.c
 - Makefile
 - lexan.h *
 - token.h *
@@ -27,11 +28,10 @@ Lexical Analyzer
 - printtoken.c	*
 
 
-- lexanl.c *
-
 ### Instruction
 
 ```
+$ make clean
 $ make lexer
 $ ./lexer < [SPL-file]
 ```
@@ -41,9 +41,6 @@ $ ./lexer < [SPL-file]
 ```
 yylex() =  306   tokentype:  2  which:   19      Program
 yylex() =  258   tokentype:  3  value:            graph1
-yylex() =  283   tokentype:  1  which:    4            (
-yylex() =  258   tokentype:  3  value:            output
-yylex() =  284   tokentype:  1  which:    5            )
 yylex() =  281   tokentype:  1  which:    2            ;
 yylex() =  314   tokentype:  2  which:   27          var
 yylex() =  258   tokentype:  3  value:                 i
@@ -74,22 +71,39 @@ yylex() =  273   tokentype:  0  which:   13            .
 
 ## Part 2
 
-parser
+Syntax Analysis - parser
 
 ### Files
 
 Modified/new files
 
 - parse.y
-- parse.h *
+- parse.h
+- parsefun.c
+- mainparser.c
 - pprint.c *
+- pprint.h
 - symtab.c *
 - symtab.h *
-- syntax.txt *
+- symtab.txt *
 
 ### Instruction
 
 ```
+$ make clean
 $ make parser
 $ ./parser < [SPL-file]
 ```
+## Part 3
+
+Code Generator - compiler
+
+### Files
+
+- codegen.c
+- codegen.h
+- maincompiler.c
+- driver.c *
+- genasm.c *
+- genasm.h *
+

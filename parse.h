@@ -12,6 +12,14 @@
 TOKEN makeProgram(TOKEN program_head, TOKEN routine);
 /* makeop makes a new operator token with operator number opnum. */
 TOKEN makeOp(int opNum);
+
+/* makepnb is like makeprogn, except that if statements is already a progn,
+   it just returns statements.  This is optional. */
+TOKEN makePnb(TOKEN tok, TOKEN statements);
+/* makeprogn makes a PROGN operator and links it to the list of statements.
+   tok is a (now) unused token that is recycled. */
+TOKEN makeProgn(TOKEN tok, TOKEN statements);
+
 /* cons links a new item onto a list */
 TOKEN cons(TOKEN list, TOKEN item);
 /* instconst installs a constant in the symbol table */
@@ -59,6 +67,90 @@ TOKEN makeIntc(int num);
 /* copytok makes a new token that is a copy of origtok */
 TOKEN copyTok(TOKEN origtok);
 
+/* instdotdot installs a .. subrange in the symbol table.
+   dottok is a (now) unused token that is recycled. */
+TOKEN instDotdot(TOKEN lowtok, TOKEN dottok, TOKEN hightok);
+
+/* instarray installs an array declaration into the symbol table.
+   bounds points to a SUBRANGE symbol table entry.
+   The symbol table pointer is returned in token typetok. */
+TOKEN instArray(TOKEN bounds, TOKEN typetok);
+
+/* instrec will install a record definition.  Each token in the linked list
+   argstok has a pointer its type.  rectok is just a trash token to be
+   used to return the result in its symtype */
+TOKEN instRec(TOKEN rectok, TOKEN argstok);
+/* instfields will install type in a list idlist of field name tokens:
+   re, im: real    put the pointer to REAL in the RE, IM tokens.
+   typetok is a token whose symtype is a symbol table pointer.
+   Note that nconc() can be used to combine these lists after instrec() */
+TOKEN instFields(TOKEN idlist, TOKEN typetok);
+
+/* dolabel is the action for a label of the form   <number>: <statement>
+   tok is a (now) unused token that is recycled. */
+TOKEN doLabel(TOKEN labeltok, TOKEN tok, TOKEN statement);
+
+/* arrayref processes an array reference a[i]
+   subs is a list of subscript expressions.
+   tok and tokb are (now) unused tokens that are recycled. */
+TOKEN arrayRef(TOKEN arr, TOKEN tok, TOKEN subs, TOKEN tokb);
+/* makearef makes an array reference operation.
+   off is be an integer constant token
+   tok (if not NULL) is a (now) unused token that is recycled. */
+TOKEN makeAref(TOKEN var, TOKEN off, TOKEN tok);
+/* makeplus makes a + operator.
+   tok (if not NULL) is a (now) unused token that is recycled. */
+TOKEN makePlus(TOKEN lhs, TOKEN rhs, TOKEN tok);
+/* addint adds integer off to expression exp, possibly using tok */
+TOKEN addInt(TOKEN exp, TOKEN off, TOKEN tok);
+
+/* makefuncall makes a FUNCALL operator and links it to the fn and args.
+   tok is a (now) unused token that is recycled. */
+TOKEN makeFuncall(TOKEN tok, TOKEN fn, TOKEN args);
+TOKEN write_fxn_args_type_check(TOKEN fn, TOKEN args);
+
+/* unaryop links a unary operator op to one operand, lhs */
+TOKEN unaryop(TOKEN op, TOKEN lhs);
+
+/* reducedot handles a record reference.
+   dot is a (now) unused token that is recycled. */
+TOKEN reduceDot(TOKEN var, TOKEN dot, TOKEN field);
+TOKEN get_last_link(TOKEN tok);
+TOKEN get_last_operand(TOKEN tok);
+TOKEN makeRealTok(float num);
+
+/* makeif makes an IF operator and links it to its arguments.
+   tok is a (now) unused token that is recycled to become an IFOP operator */
+TOKEN makeIf(TOKEN tok, TOKEN exp, TOKEN thenpart, TOKEN elsepart);
+
+/* makerepeat makes structures for a repeat statement.
+   tok and tokb are (now) unused tokens that are recycled. */
+TOKEN makeRepeat(TOKEN tok, TOKEN statements, TOKEN tokb, TOKEN expr);
+/* makelabel makes a new label, using labelnumber++ */
+TOKEN makeLabel();
+/* makegoto makes a GOTO operator to go to the specified label.
+   The label number is put into a number token. */
+TOKEN makeGoto(int label);
+
+/* makewhile makes structures for a while statement.
+   tok and tokb are (now) unused tokens that are recycled. */
+TOKEN makeWhile(TOKEN tok, TOKEN expr, TOKEN tokb, TOKEN statement);
+
+/* makefor makes structures for a for statement.
+   sign is 1 for normal loop, -1 for downto.
+   asg is an assignment statement, e.g. (:= i 1)
+   endexpr is the end expression
+   tok, tokb and tokc are (now) unused tokens that are recycled. */
+TOKEN makeFor(TOKEN tok, TOKEN asg, TOKEN dir, TOKEN endexpr,
+              TOKEN tokc, TOKEN statement);
+TOKEN makeLoopIncr(TOKEN var, int incr_amt);
+
+/* dogoto is the action for a goto statement.
+   tok is a (now) unused token that is recycled. */
+TOKEN doGoto(TOKEN tok, TOKEN labeltok);
+
+
+
 /* parse.h     Gordon S. Novak Jr.    */
 /* 16 Apr 04; 23 Feb 05; 17 Nov 05; 18 Apr 06; 26 Jul 12; 07 Aug 13 */
 
@@ -69,31 +161,12 @@ TOKEN copyTok(TOKEN origtok);
  * Last modified: 1730, 14/08/11
  */
 
-/* addint adds integer off to expression exp, possibly using tok */
-TOKEN addint(TOKEN exp, TOKEN off, TOKEN tok);
 
 /* addoffs adds offset, off, to an aref expression, exp */
 TOKEN addoffs(TOKEN exp, TOKEN off);
 
 /* appendst makes a progn containing statements followed by more */
 TOKEN appendst(TOKEN statements, TOKEN more);
-
-/* arrayref processes an array reference a[i]
-   subs is a list of subscript expressions.
-   tok and tokb are (now) unused tokens that are recycled. */
-TOKEN arrayref(TOKEN arr, TOKEN tok, TOKEN subs, TOKEN tokb);
-
-
-
-
-
-/* dogoto is the action for a goto statement.
-   tok is a (now) unused token that is recycled. */
-TOKEN dogoto(TOKEN tok, TOKEN labeltok);
-
-/* dolabel is the action for a label of the form   <number>: <statement>
-   tok is a (now) unused token that is recycled. */
-TOKEN dolabel(TOKEN labeltok, TOKEN tok, TOKEN statement);
 
 /* dopoint handles a ^ operator.
    tok is a (now) unused token that is recycled. */
@@ -102,31 +175,10 @@ TOKEN dopoint(TOKEN var, TOKEN tok);
 /* fillintc smashes tok, making it into an INTEGER constant with value num */
 TOKEN fillintc(TOKEN tok, int num);
 
-
-
-TOKEN get_last_link(TOKEN tok);
-
-TOKEN get_last_operand(TOKEN tok);
-
 TOKEN get_rec(TOKEN rec, TOKEN offset);
 
 TOKEN get_rec_field(TOKEN rec, TOKEN field);
 
-/* instarray installs an array declaration into the symbol table.
-   bounds points to a SUBRANGE symbol table entry.
-   The symbol table pointer is returned in token typetok. */
-TOKEN instarray(TOKEN bounds, TOKEN typetok);
-
-/* instdotdot installs a .. subrange in the symbol table.
-   dottok is a (now) unused token that is recycled. */
-TOKEN instdotdot(TOKEN lowtok, TOKEN dottok, TOKEN hightok);
-
-
-/* instfields will install type in a list idlist of field name tokens:
-   re, im: real    put the pointer to REAL in the RE, IM tokens.
-   typetok is a token whose symtype is a symbol table pointer.
-   Note that nconc() can be used to combine these lists after instrec() */
-TOKEN instfields(TOKEN idlist, TOKEN typetok);
 
 /* instlabel installs a user label into the label table */
 void  instlabel (TOKEN num);
@@ -134,75 +186,10 @@ void  instlabel (TOKEN num);
 /* instpoint will install a pointer type in symbol table */
 TOKEN instpoint(TOKEN tok, TOKEN typename);
 
-/* instrec will install a record definition.  Each token in the linked list
-   argstok has a pointer its type.  rectok is just a trash token to be
-   used to return the result in its symtype */
-TOKEN instrec(TOKEN rectok, TOKEN argstok);
-
-
-
-/* makearef makes an array reference operation.
-   off is be an integer constant token
-   tok (if not NULL) is a (now) unused token that is recycled. */
-TOKEN makearef(TOKEN var, TOKEN off, TOKEN tok);
-
-
-/* makefor makes structures for a for statement.
-   sign is 1 for normal loop, -1 for downto.
-   asg is an assignment statement, e.g. (:= i 1)
-   endexpr is the end expression
-   tok, tokb and tokc are (now) unused tokens that are recycled. */
-TOKEN makefor(int sign, TOKEN tok, TOKEN asg, TOKEN tokb, TOKEN endexpr,
-              TOKEN tokc, TOKEN statement);
-
-/* makefuncall makes a FUNCALL operator and links it to the fn and args.
-   tok is a (now) unused token that is recycled. */
-TOKEN makefuncall(TOKEN tok, TOKEN fn, TOKEN args);
-
-/* makegoto makes a GOTO operator to go to the specified label.
-   The label number is put into a number token. */
-TOKEN makegoto(int label);
-
-/* makeif makes an IF operator and links it to its arguments.
-   tok is a (now) unused token that is recycled to become an IFOP operator */
-TOKEN makeif(TOKEN tok, TOKEN exp, TOKEN thenpart, TOKEN elsepart);
-
-
-/* makelabel makes a new label, using labelnumber++ */
-TOKEN makelabel();
-
-TOKEN makeloopincr(TOKEN var, int incr_amt);
-
-/* makeop makes a new operator token with operator number opnum.
-   Example:  makeop(FLOATOP)  */
-TOKEN makeop(int opnum);
-
-/* makeplus makes a + operator.
-   tok (if not NULL) is a (now) unused token that is recycled. */
-TOKEN makeplus(TOKEN lhs, TOKEN rhs, TOKEN tok);
-
-/* makepnb is like makeprogn, except that if statements is already a progn,
-   it just returns statements.  This is optional. */
-TOKEN makepnb(TOKEN tok, TOKEN statements);
-
-/* makeprogn makes a PROGN operator and links it to the list of statements.
-   tok is a (now) unused token that is recycled. */
-TOKEN makeprogn(TOKEN tok, TOKEN statements);
-
-
-TOKEN makerealtok(float num);
 //TOKEN makerealtok(double num);
-
-/* makerepeat makes structures for a repeat statement.
-   tok and tokb are (now) unused tokens that are recycled. */
-TOKEN makerepeat(TOKEN tok, TOKEN statements, TOKEN tokb, TOKEN expr);
-
 
 TOKEN maketimes(TOKEN lhs, TOKEN rhs, TOKEN tok);
 
-/* makewhile makes structures for a while statement.
-   tok and tokb are (now) unused tokens that are recycled. */
-TOKEN makewhile(TOKEN tok, TOKEN expr, TOKEN tokb, TOKEN statement);
 
 /* mulint multiplies expression exp by integer n */
 TOKEN mulint(TOKEN exp, int n);
@@ -214,9 +201,6 @@ TOKEN mulint(TOKEN exp, int n);
    make them into a single list in a record declaration. */
 TOKEN nconc(TOKEN lista, TOKEN listb);
 
-/* reducedot handles a record reference.
-   dot is a (now) unused token that is recycled. */
-TOKEN reducedot(TOKEN var, TOKEN dot, TOKEN field);
 
 /* searchins will search for symbol, inserting it if not present. */
 SYMBOL searchinsst(char name[]);
@@ -232,11 +216,8 @@ TOKEN std_fxn_args_type_check(TOKEN fn, TOKEN args);
 /* talloc allocates a new TOKEN record. */
 TOKEN talloc();
 
-/* unaryop links a unary operator op to one operand, lhs */
-TOKEN unaryop(TOKEN op, TOKEN lhs);
 
 
-TOKEN write_fxn_args_type_check(TOKEN fn, TOKEN args);
 
 typedef short boolean;
 #ifdef TRUE

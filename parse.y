@@ -10,6 +10,7 @@
    the IF statement, but Yacc's default resolves it in the right way.*/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include "token.h"
 #include "lexan.h"
@@ -24,6 +25,8 @@
 TOKEN parseresult;
 extern int lineCnt;
 extern int labelnumber;
+
+void senmaticError(char* s);
 
 %}
 
@@ -87,18 +90,18 @@ type_decl		: simple_type_decl					{ $$ = $1; }
 simple_type_decl: SYS_TYPE							{ $$ = findType($1); }
 				| ID								{ $$ = findType($1); }
 				| LP id_list RP						{ $$ = instEnum($2); }
-				| const_value DOTDOT const_value	{ $$ = NULL; }
-				| ID DOTDOT ID						{ $$ = NULL; }
+				| const_value DOTDOT const_value	{ $$ = instDotdot($1, $2, $3); }
+				| ID DOTDOT ID						{ $$ = instDotdot($1, $2, $3); }
 				;
 array_type_decl	: ARRAY LB simple_type_decl RB OF type_decl
-													{ $$ = NULL; }	// instarray
+													{ $$ = instArray($3, $6); }		// instarray
 				;
-record_type_decl: RECORD field_decl_list END		{ $$ = NULL; }	// intrec
+record_type_decl: RECORD field_decl_list END		{ $$ = instRec($1, $2); }		// intrec
 				;
 field_decl_list	: field_decl_list field_decl		{ $$ = cons($1, $2); }
 				| field_decl						{ $$ = $1; }
 				;
-field_decl		: id_list COLON type_decl SEMI		{ $$ = NULL; }	// instfields
+field_decl		: id_list COLON type_decl SEMI		{ $$ = instFields($1, $3);; }	// instfields
 				;
 id_list			: id_list COMMA ID					{ $$ = cons($1, $3); }
 				| ID								{ $$ = $1; }
@@ -112,7 +115,7 @@ var_decl_list	: var_decl_list var_decl			{ $$ = NULL; }
 				;
 var_decl		: id_list COLON type_decl SEMI		{ instVars($1, $3); }	// install vars
 				;
-// routine part
+// routine part		// TODO
 routine_part	: routine_part function_decl		{ $$ = NULL; }
 				| routine_part procedure_decl		{ $$ = NULL; }
 				| function_decl						{ $$ = NULL; }
@@ -150,12 +153,12 @@ val_para_list	: id_list							{ $$ = NULL; }
 // routine body
 routine_body	: compound_stmt						{ $$ = $1; }
 				;
-compound_stmt	: BEGIN_T stmt_list END				{ $$ = $2; }
+compound_stmt	: BEGIN_T stmt_list END				{ $$ = makePnb($1, $2); }
 				;
 stmt_list		: stmt_list stmt SEMI				{ $$ = cons($1, $2); }
 				| // empty
 				;
-stmt			: CONST_INT COLON non_label_stmt	{}// $$ = dolabel($1, $2, $3); }	// dolabel
+stmt			: CONST_INT COLON non_label_stmt	{ $$ = doLabel($1, $2, $3); }	// TODO: bug
 				| non_label_stmt					{ $$ = $1; }
 				;
 non_label_stmt	: assign_stmt						{ $$ = $1; }
@@ -169,34 +172,34 @@ non_label_stmt	: assign_stmt						{ $$ = $1; }
 				| goto_stmt							{ $$ = $1; }
 				;
 assign_stmt		: ID ASSIGN expression				{ $$ = binop($2, $1, $3); }
-				| ID LB expression RB ASSIGN expression
-													{}// $$ = binop($5, makefuncall($2, $1, $3), $6); }
-				| ID DOT ID ASSIGN expression		{}// $$ = binop($4, makefuncall($2, $1, $3), $5); }
+				| ID LB expression RB ASSIGN expression	// array[i], index from 1 defaut
+													{ $$ = binop($5, arrayRef($1, NULL, $3, NULL), $6); }
+				| ID DOT ID ASSIGN expression		{ $$ = binop($4, reduceDot($1, $2, $3), $5); }
 				;
-proc_stmt		: ID								{ $$ = NULL; }
-				| ID LP args_list RP				{ $$ = NULL; }
-				| SYS_PROC							{ $$ = NULL; }
-				| SYS_PROC LP expression_list RP	{ $$ = NULL; }
-				| READ LP factor RP					{ $$ = NULL; }
+proc_stmt		: ID								{ $$ = makeFuncall($1, NULL, NULL); }
+				| ID LP args_list RP				{ $$ = makeFuncall($2, $1, $3); }
+				//| SYS_PROC						{ $$ = NULL; }	// what is it ???
+				| SYS_PROC LP expression_list RP	{ $$ = makeFuncall($2, $1, $3); }
+				| READ LP factor RP					{ $$ = makeFuncall($2, $1, $3); }
 				;
 if_stmt			: IF expression THEN stmt else_clause		
-													{ $$ = NULL; }
+													{ $$ = makeIf($1, $2, $4, $5); }
 				;
-else_clause		: ELSE stmt							{ $$ = NULL; }
-				|									{ $$ = NULL; }
+else_clause		: ELSE stmt							{ $$ = $2; }
+				| // empty
 				;
-repeat_stmt		: REPEAT stmt_list UNTIL expression	{ $$ = NULL; }
+repeat_stmt		: REPEAT stmt_list UNTIL expression	{ $$ = makeRepeat($1, $2, $3, $4); }
 				;
-while_stmt		: WHILE expression DO stmt			{ $$ = NULL; }
+while_stmt		: WHILE expression DO stmt			{ $$ = makeWhile($1, $2, $3, $4); }
 				;
 for_stmt		: FOR ID ASSIGN expression direction expression DO stmt
-													{ $$ = NULL; }
+													{ $$ = makeFor($1, binop($3, $2, $4), $5, $6, $7, $8); }
 				;
-direction		: TO								{ $$ = NULL; }
-				| DOWNTO							{ $$ = NULL; }
+direction		: TO								{ $$ = $1; }
+				| DOWNTO							{ $$ = $1; }
 				;
 case_stmt		: CASE expression OF case_expr_list END
-													{ $$ = NULL; }
+													{ $$ = NULL; }	// TODO
 				;
 case_expr_list	: case_expr_list case_expr			{ $$ = NULL; }
 				| case_expr							{ $$ = NULL; }
@@ -204,48 +207,53 @@ case_expr_list	: case_expr_list case_expr			{ $$ = NULL; }
 case_expr		: const_value COLON stmt SEMI		{ $$ = NULL; }
 				| ID COLON stmt SEMI				{ $$ = NULL; }
 				;
-goto_stmt		: GOTO CONST_INT					{ $$ = NULL; }
+goto_stmt		: GOTO CONST_INT					{ $$ = doGoto($1, $2); }	// useless
 				;
-expression_list	: expression_list COMMA expression	{ $$ = NULL; }
-				|									{ $$ = NULL; }
+expression_list	: expression_list COMMA expression	{ $$ = cons($1, $2); }
+				| expression						{ $$ = $1; }
 				;
-expression		: expression GE expr				{ $$ = NULL; }
-				| expression GT expr				{ $$ = NULL; }
-				| expression LE expr				{ $$ = NULL; }
-				| expression LT expr				{ $$ = NULL; }
-				| expression EQ expr				{ $$ = NULL; }
-				| expression NE expr				{ $$ = NULL; }
+expression		: expression GE expr				{ $$ = binop($2, $1, $3); }
+				| expression GT expr				{ $$ = binop($2, $1, $3); }
+				| expression LE expr				{ $$ = binop($2, $1, $3); }
+				| expression LT expr				{ $$ = binop($2, $1, $3); }
+				| expression EQ expr				{ $$ = binop($2, $1, $3); }
+				| expression NE expr				{ $$ = binop($2, $1, $3); }
 				| expr								{ $$ = $1; }
 				;
-expr			: expr PLUS term					{ $$ = NULL; }
-				| expr MINUS term					{ $$ = NULL; }
-				| expr OR term						{ $$ = NULL; }
+expr			: expr PLUS term					{ $$ = binop($2, $1, $3); }
+				| expr MINUS term					{ $$ = binop($2, $1, $3); }
+				| expr OR term						{ $$ = binop($2, $1, $3); }
 				| term								{ $$ = $1; }
 				;
-term			: term MUL factor					{ $$ = NULL; }
-				| term DIV factor					{ $$ = NULL; }
-				| term MOD factor					{ $$ = NULL; }
-				| term AND factor					{ $$ = NULL; }
+term			: term MUL factor					{ $$ = binop($2, $1, $3); }
+				| term DIV factor					{ $$ = binop($2, $1, $3); }
+				| term MOD factor					{ $$ = binop($2, $1, $3); }
+				| term AND factor					{ $$ = binop($2, $1, $3); }
 				| factor							{ $$ = $1; }
 				;
 factor			: ID								{ $$ = findId($1); }
-				| ID LP args_list RP				{ $$ = NULL; }
-				| SYS_FUNCT							{ $$ = NULL; }
-				| SYS_FUNCT LP args_list RP			{ $$ = NULL; }
+				| ID LP args_list RP				{ $$ = makeFuncall($2, $1, $3); }
+				//| SYS_FUNCT						{ $$ = NULL; }	// what is it ???
+				| SYS_FUNCT LP args_list RP			{ $$ = makeFuncall($2, $1, $3); }
 				| const_value						{ $$ = $1; }
-				| LP expression RP					{ $$ = NULL; }
-				| NOT factor						{ $$ = NULL; }
-				| MINUS factor						{ $$ = NULL; }
-				| ID LB expression RB				{ $$ = NULL; }
-				| ID DOT ID							{ $$ = NULL; }
+				| LP expression RP					{ $$ = $2; }
+				| NOT factor						{ $$ = unaryop($1, $2); }
+				| MINUS factor						{ $$ = unaryop($1, $2); }
+				| ID LB expression RB				{ $$ = arrayRef($1, NULL, $3, NULL); }
+				| ID DOT ID							{ $$ = reduceDot($1, $2, $3); }
 				;
-args_list		: args_list COMMA expression		{ $$ = NULL; }
-				| expression						{ $$ = NULL; }
+args_list		: args_list COMMA expression		{ $$ = cons($1, $3); }
+				| expression						{ $$ = $1; }
 
 %%
 
 
 int yyerror(s) char *s; {
-	fprintf(stderr, "Parse Error at line %d: %s\n", lineCnt, s);
+	fprintf(stderr, "Parser Error at line %d: %s\n", lineCnt, s);
 	return 0;
+}
+
+void senmaticError(char* s) {
+	fprintf(stderr, "Senmatic Error at line %d: %s\n", lineCnt, s);
+	exit(-1);
 }

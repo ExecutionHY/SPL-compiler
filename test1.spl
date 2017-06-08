@@ -4,13 +4,35 @@ const
 type
 	type1 = integer;
 	type2 = (item1, item2);
+	type3 = record
+		num : integer;
+		value : real;
+	end;
 var
-	a: type1;
+	a, a1, i: type1;
 	b: type2;
+	c: type3;
+	d: array[2..10] of integer;
 begin
 	a := one;
-	begin
-		b := item2;
-	end
+	b := item2;
+	d[1+2] := 1;
+	a := odd(1);
+	c.num := 1;
+	if a = c.num then writeln(a)
+	else a := c.num
+	;
+
+	a1 := 3;
+	repeat
+		a := a + 1;
+	until a = a1;
+
+	while a < 6 do
+		a := a + 1;
+
+	for i := 1 to 3 do
+		a := a - 1;
+
 end
 .

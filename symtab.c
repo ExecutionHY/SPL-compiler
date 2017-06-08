@@ -300,26 +300,35 @@ void initsyms() {
 	intsym  = insertbt("integer", TYPE_INT, 4);
 	charsym = insertbt("char", TYPE_CHAR, 1);
 	boolsym = insertbt("boolean", TYPE_BOOL, 4);
-	sym = insertfn("exp", realsym, realsym);
-	sym = insertfn("trexp", realsym, realsym);
-	sym = insertfn("sin", realsym, realsym);
-	sym = insertfn("cos", realsym, realsym);
-	sym = insertfn("trsin", realsym, realsym);
+
+	sym = insertfn("abs", realsym, realsym);
+	sym = insertfn("sqr", realsym, realsym);
 	sym = insertfn("sqrt", realsym, realsym);
-	sym = insertfn("round", realsym, realsym);
-	sym = insertfn("iround", intsym, realsym); /* C math lib defines round */
 	sym = insertfn("ord", intsym, intsym);
-	sym = insertfn("new", intsym, intsym);
-	sym = insertfn("trnew", intsym, intsym);
+	sym = insertfn("chr", charsym, intsym);
+	sym = insertfn("pred", charsym, charsym);
+	sym = insertfn("succ", charsym, charsym);
+	sym = insertfn("odd", boolsym, intsym);
+
 	sym = insertfn("write", NULL, charsym);
 	sym = insertfn("writeln", NULL, charsym);
-	sym = insertfn("writef", NULL, realsym);
-	sym = insertfn("writelnf", NULL, realsym);
-	sym = insertfn("writei", NULL, intsym);
-	sym = insertfn("writelni", NULL, intsym);
 	sym = insertfn("read", NULL, NULL);
 	sym = insertfn("readln", NULL, NULL);
-	sym = insertfn("eof", boolsym, NULL);
+
+	//sym = insertfn("exp", realsym, realsym);
+	//sym = insertfn("trexp", realsym, realsym);
+	//sym = insertfn("sin", realsym, realsym);
+	//sym = insertfn("cos", realsym, realsym);
+	//sym = insertfn("trsin", realsym, realsym);
+	//sym = insertfn("round", realsym, realsym);
+	//sym = insertfn("iround", intsym, realsym); /* C math lib defines round */
+	//sym = insertfn("new", intsym, intsym);
+	//sym = insertfn("trnew", intsym, intsym);
+	//sym = insertfn("writef", NULL, realsym);
+	//sym = insertfn("writelnf", NULL, realsym);
+	//sym = insertfn("writei", NULL, intsym);
+	//sym = insertfn("writelni", NULL, intsym);
+	//sym = insertfn("eof", boolsym, NULL);
 	blocknumber = 1;             /* Start the user program in block 1 */
 	contblock[1] = 0;
 }

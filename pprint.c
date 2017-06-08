@@ -58,6 +58,9 @@ void printtok(TOKEN tok) {
 		case TOKEN_STR:
 			printf ("'%s'", tok->stringval);
 			break;
+		case RESERVED: 
+			printf ("%s", tok->stringval);
+			break;
 		case TOKEN_NUM:
 			switch (tok->dataType) {
 				case TYPE_INT:
@@ -68,7 +71,7 @@ void printtok(TOKEN tok) {
 					break;
 			}
 			break;
-		case DELIMITER: case RESERVED: case OPERATOR:
+		case DELIMITER: case OPERATOR:
 			break;
 	}
 }
