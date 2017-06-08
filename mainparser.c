@@ -21,7 +21,7 @@ int main() {
 	int res;
 	initsyms();
 	res = yyparse();
-	//printst();
+	printst();
 	printf("yyparse result = %8d\n", res);
 	if (DEBUG & DB_PARSERES) dbugprinttok(parseresult);
 	ppexpr(parseresult);           /* Pretty-print the result tree */

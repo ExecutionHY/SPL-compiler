@@ -22,7 +22,7 @@ TOKENNODE curr_label = NULL;
 int    blocknumber = 0;       /* Number of current block being compiled */
 int    contblock[MAXBLOCKS];  /* Containing block for each block        */
 int    blockoffs[MAXBLOCKS];  /* Storage offsets for each block         */
-SYMBOL symtab[MAXBLOCKS];     /* Symbol chain for each block            */
+SYMBOL symtab[MAXBLOCKS][HASH_SIZE];     /* Symbol chain for each block            */
 SYMBOL symend[MAXBLOCKS];     /* End of symbol chain for each block     */
 
 /* Sizes of basic types  INTEGER  REAL  	CHAR  	BOOL 	 STRING   */
@@ -52,23 +52,38 @@ SYMBOL makesym(char name[]) {
 SYMBOL insertsym(char name[]) {
 	SYMBOL sym;
 	sym = makesym(name);
-	if ( symtab[blocknumber] == NULL )  /* Insert in 2-pointer queue */
-		symtab[blocknumber] = sym;
-	else symend[blocknumber]->link = sym;
-	symend[blocknumber] = sym;
+	int pos = hashfun(name);
+	while (symtab[blocknumber][pos] != NULL) {
+		pos = (pos + 1) % HASH_SIZE;
+		if (pos == hashfun(name)) {
+			printf("Error: symbol table overflow.\n");
+			exit(-1);
+		}
+	}
+	symtab[blocknumber][pos] = sym;
 	sym->blockLevel = blocknumber;
-	if (DEBUG) printf("insertsym %8s %ld\n", name, (long) sym);
+	if (DEBUG_SYMTAB) printf("insertsym %8s %ld at level %d, pos %d\n",
+		name, (long) sym, blocknumber, pos);
 	return sym;
 }
+
+int hashfun(char name[]) {
+	return tolower(name[0])-'a';
+}
+
 
 /* Search one level of the symbol table for the given name.         */
 /* Result is a pointer to the symbol table entry or NULL            */
 SYMBOL searchlev(char name[], int level){
-	SYMBOL sym;
-	sym = symtab[level];
-	while ( sym != NULL && strcmp(name, sym->nameString) != 0 )
-		sym = sym->link;
-	return sym;
+	int pos = hashfun(name);
+	SYMBOL sym; 
+
+	while ((sym = symtab[level][pos]) != NULL) {
+		if (strcmp(name, sym->nameString) == 0) return sym;
+		pos = (pos + 1) % HASH_SIZE;
+		if (pos == hashfun(name)) return NULL;
+	}
+	return NULL;
 }
 
 /* Search all levels of the symbol table for the given name.        */
@@ -81,7 +96,8 @@ SYMBOL searchst(char name[]){
 		if (level > 0) level = contblock[level]; /* try containing block */
 		else level = -1;                      /* until all are tried  */
 	}
-	if (DEBUG) printf("searchst  %8s %ld\n", name, (long) sym);
+	if (DEBUG_SYMTAB) printf("searchst %8s %ld at level %dn",
+		name, (long) sym, level);
 	return sym;
 }
 
@@ -245,20 +261,19 @@ void printsymbol(SYMBOL sym) {
 
 /* Print entries on one level of symbol table */
 void printstlevel(int level) {
-	SYMBOL sym =  symtab[level];
-	if ( sym != NULL ) {
-		printf("Symbol table level %d\n", level);
-		while ( sym != NULL ) {
-			printsymbol(sym);
-			sym = sym->link;
-		}
+	printf("Symbol table level %d\n", level);
+	int i;
+	for (i = 0; i < HASH_SIZE; i++) {
+		printf("%2d: ", i);
+		if (symtab[level][i] != NULL) printsymbol(symtab[level][i]);
+		else printf("NULL\n");
 	}
 }
 
 /* Print all entries in the symbol table */
 void printst() {
 	int level;
-	for (level = 0; level < MAXBLOCKS; level++)
+	for (level = 0; level <= blocknumber; level++)
 		printstlevel(level);
 }
 

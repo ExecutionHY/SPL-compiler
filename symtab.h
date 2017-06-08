@@ -94,7 +94,7 @@ void initsyms(void);    /* initializes pre-defined symbols */
 /* alignsize returns the required alignment boundary for a type  */
 int alignsize(SYMBOL sym);
 
-int DEBUG;
+#define DEBUG_SYMTAB 1
 int blocknumber;           /* Number of current block being compiled */
 int blockoffs[MAXBLOCKS];  /* Storage offsets for each block         */
 int basicsizes[5];
@@ -103,6 +103,9 @@ int basicsizes[5];
 int user_label_exists(TOKEN label_tok);
 int get_internal_label_num(int external_label_num);
 void insert_label(int internal_label_num, TOKEN label_tok);
+
+#define HASH_SIZE 26
+int hashfun(char name[]);
 
 
 #endif	/* SYMTAB_H */
