@@ -7,6 +7,7 @@
 
 #include <ctype.h>
 #include <stdio.h>
+#include <string.h>
 #include "token.h"
 #include "lexan.h"
 #include "symtab.h"
@@ -121,7 +122,43 @@ void printexpr(TOKEN tok, int col) {
 		printf ("printexpr: col %d\n", col);
 		dbugprinttok(tok);
 	}
-	if (tok->tokenType == OPERATOR) {
+	if (strcmp(tok->stringval, "function") == 0) {
+		printf ("(function");
+		nextcol = col + 2 + 8;
+		opnds = tok->operands;
+		start = 0;
+		while (opnds != NULL) {
+			if (start < 3) printf(" ");
+			else {
+				printf("\n");
+				for (i = 0; i < nextcol; i++) printf(" ");
+			}
+			if (start == 0) nextcol += 1 + strlength(opnds->stringval);
+			printexpr(opnds, nextcol);
+			start++;
+			opnds = opnds->link;
+		}
+		printf (")");
+	}
+	else if (strcmp(tok->stringval, "procedure") == 0) {
+		printf ("(procedure");
+		nextcol = col + 2 + 9;
+		opnds = tok->operands;
+		start = 0;
+		while (opnds != NULL) {
+			if (start < 3) printf(" ");
+			else {
+				printf("\n");
+				for (i = 0; i < nextcol; i++) printf(" ");
+			}
+			if (start == 0) nextcol += 1 + strlength(opnds->stringval);
+			printexpr(opnds, nextcol);
+			start++;
+			opnds = opnds->link;
+		}
+		printf (")");
+	}
+	else if (tok->tokenType == OPERATOR) {
 		printf ("(%s", opprint[tok->whichval]);
 		nextcol = col + 2 + opsize[tok->whichval];
 		opnds = tok->operands;

@@ -27,6 +27,6 @@ int main() {
 	//printst();
 	printf("yyparse result = %8d\n", res);
 	ppexpr(parseresult); 
-	gencode(parseresult, blockoffs[blocknumber], labelnumber);
+	gencode(parseresult, blockoffs[blocknumber], labelnumber-1);
 	return 0;
 }

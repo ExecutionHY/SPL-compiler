@@ -58,6 +58,18 @@ int used_regs[32] = { 0, 0, 0, 0, 0, 0, 0, 0,
                      /* xmm0 to xmm15 */
                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
                     };
+int arg_reg[4] = {EDI, ESI, EDX, ECX};
+
+char* funtopcode[] = {
+  "	pushq	%rbp			# save base pointer on stack",
+  "	movq	%rsp, %rbp		# move stack pointer to base pointer",
+  "",
+};
+char* funbotcode[] = {
+	"	leave",
+	"	ret",
+	"",
+};
 
 #define NUM_INT_REGS    8
 #define NUM_FP_REGS     24
@@ -82,23 +94,20 @@ void gencode(TOKEN pcode, int varsize, int maxlabel){
 	name = pcode->operands;
 	nextlabel = maxlabel + 1;
 	fund = name->link;
+
+	stkframesize = asmentry(name->stringval,varsize);
+	asmjump(JMP, 0);	// jump to L0 (start)
 	while (fund->whichval == OP_FUNDCL) {
+		asmlabelstr(fund->operands->operands->link->stringval);
+		genc(fund);
 		fund = fund->link;
 	}
 	body = fund;
-	if (name->link->whichval == OP_FUNDCL) fund = name->link;
-	else fund = NULL;
+	asmlabel(0);		// label L0 (start)
+	blocknumber = 1;
 
-	stkframesize = asmentry(name->stringval,varsize);
 	genc(body);
-	asmjump(JMP, 0);	// jump to L0 (end)
 
-	while (fund->whichval == OP_FUNDCL) {
-		genc(body);
-		fund = fund->link;
-	}
-
-	asmlabel(0);		// label L0 (end)
 	asmexit(name->stringval);
 }
 
@@ -194,9 +203,8 @@ int genarith(TOKEN code) {
 			if (sym->kind == SYM_FUNCTION) {
 				reg_num = getreg(sym->dataType->basicType);
 				inline_funcall = code;
-				genc(code->link);
+				//genc(code->link);
 			}
-
 			else {
 
 				reg_num = getreg(code->dataType);
@@ -241,7 +249,18 @@ int genarith(TOKEN code) {
 			lhs_reg = genarith(code->operands);
 
 			if (code->operands->link) {
-				rhs_reg = genarith(code->operands->link);
+				if (code->whichval == OP_FUNCALL) {
+					TOKEN arglist = code->operands->link;
+					int temp_reg, index = 0;
+					while (arglist) {
+						temp_reg = genarith(arglist);
+						asmrr(MOVL, temp_reg, arg_reg[index]); // score values into arg reg
+						mark_reg_used(arg_reg[index++]);
+						free_reg(temp_reg);
+						arglist = arglist->link;
+					}
+				}
+				else rhs_reg = genarith(code->operands->link);
 
 			}
 			else {
@@ -275,8 +294,17 @@ int genarith(TOKEN code) {
 				}
 			}
 
+			/************* key code ***************/
+			if (code->whichval == OP_FUNCALL) saved_inline_reg = EAX;
 			lhs_reg = genop(code, rhs_reg, lhs_reg);
-			free_reg(rhs_reg);
+
+			if (code->whichval == OP_FUNCALL) {
+				free_reg(arg_reg[0]);
+				free_reg(arg_reg[1]);
+				free_reg(arg_reg[2]);
+				free_reg(arg_reg[3]);
+			}
+			else free_reg(rhs_reg);
 
 			if (same_reg_assn) {
 				int temp;
@@ -291,7 +319,12 @@ int genarith(TOKEN code) {
 				lhs_reg = temp;
 			}
 
-			reg_num = lhs_reg;
+			if (code->whichval == OP_FUNCALL) {
+				reg_num = EAX;
+				mark_reg_used(reg_num);
+			}
+			else reg_num = lhs_reg;
+
 		}
 		break;
 		default:
@@ -403,7 +436,7 @@ int genop(TOKEN code, int rhs_reg, int lhs_reg) {
                 else {
                     asmcall(inline_funcall->stringval);
                     asmldtemp(saved_inline_reg);
-                }               
+                }
             }
             else {
                 asmcall(inline_funcall->stringval);
@@ -777,7 +810,7 @@ void genc(TOKEN code){
 			}
 
 			lhs = code->operands;
-			asmjump(JMP, lhs->intval+1);
+			asmjump(JMP, lhs->intval);
 		}
 		break;
 		case OP_LABEL: {
@@ -790,7 +823,7 @@ void genc(TOKEN code){
 			}
 
 			lhs = code->operands;
-			asmlabel(lhs->intval+1);
+			asmlabel(lhs->intval);
 		}
 		break;
 		case OP_IF: {
@@ -803,20 +836,26 @@ void genc(TOKEN code){
 			lhs = code->operands;
 			rhs = code->operands->link;
 			int if_label_num = genarith(lhs);
+			/*
 			if (rhs->whichval == OP_PROGN) {
 				if (rhs->link != NULL) {
 					asmjump(JMP, saved_label_num);
 				}
-			}
+			}*/
 			asmjump(JMP, nextlabel);
 			int else_label_num = nextlabel++;
+			int endif_label_num = nextlabel++;
+
 			asmlabel(if_label_num);
 			genc(rhs);
-			asmlabel(else_label_num);
-			genc(lhs);
+			asmjump(JMP, endif_label_num);
 
+			asmlabel(else_label_num);
+			genc(rhs->link);
+			asmlabel(endif_label_num);
 		}
 		break;
+		// procedures. functions will be generate by OP_ASSIGN / getarith
 		case OP_FUNCALL: {
 
 			if (DEBUGGEN) {
@@ -831,7 +870,7 @@ void genc(TOKEN code){
 			rhs = code->operands->link;
 			SYMBOL argsym;
 
-			if (strstr(lhs->stringval, "write")) {      // != NULL
+			if (strstr(lhs->stringval, "write")) {      // write/writeln
 				sym = searchst(lhs->stringval);
 
 				if (rhs->tokenType == TOKEN_STR) {
@@ -875,7 +914,7 @@ void genc(TOKEN code){
 					SYMBOL argsym;
 
 					if (rhs->tokenType == TOKEN_NUM) {
-						printf("\nNUMBERTOK UNFINISHED\n");
+						printf("\nTOKEN_NUM UNFINISHED\n");
 					}             
 
 					else if (rhs->tokenType == TOKEN_ID) {
@@ -904,11 +943,94 @@ void genc(TOKEN code){
 					}
 				}
 			}
-			// other function
+			// other procedure
 			else {
-
+				TOKEN arglist = rhs;
+				int temp_reg, index = 0;
+				while (arglist) {
+					temp_reg = genarith(arglist);
+					asmrr(MOVL, temp_reg, arg_reg[index]); // score values into arg reg
+					mark_reg_used(arg_reg[index++]);
+					free_reg(temp_reg);
+					arglist = arglist->link;
+				}
+				asmcall(lhs->stringval);
+				free_reg(arg_reg[0]);
+				free_reg(arg_reg[1]);
+				free_reg(arg_reg[2]);
+				free_reg(arg_reg[3]);
 			}
-		}
+		} // end of CASE OP_FUNCALL
+		break;
+		case OP_FUNDCL: {
+
+			if (DEBUGGEN) {
+				printf(" OP_FUNDCL detected.\n");
+				ppexpr(code);
+				ppexpr(code->operands);
+				ppexpr(code->operands->link);
+				printf("\n");
+			}
+
+			lhs = code->operands;
+			rhs = code->operands->link;
+			
+			blocknumber = lhs->operands->intval;
+
+			cannedcode(funtopcode);	// print function top code
+
+			TOKEN funtype = lhs->operands->link->link;	// function or procedure
+
+			// store arguments into vars(memory)
+			if (strcmp(funtype->stringval, "function") == 0) {
+				TOKEN arglist = funtype->link->link;
+				while (arglist) {
+					SYMBOL argsym = searchst(arglist->stringval);
+					switch (argsym->basicType) {
+						case TYPE_INT: {
+							reg_num = getreg(TYPE_INT);
+							offs = argsym->offset - stkframesize;
+							asmst(MOVL, reg_num, offs, argsym->nameString);
+						}
+						break;
+						case TYPE_REAL: {
+							reg_num = getreg(TYPE_REAL);
+							offs = argsym->offset - stkframesize;
+							asmst(MOVSD, reg_num, offs, argsym->nameString);
+						}
+						break;
+					}
+					arglist = arglist->link;
+				}
+			}
+
+			genc(rhs);	// routine body
+
+			TOKEN fun_name = lhs->operands->link;
+			char fun_var[16];
+			int i;
+			fun_var[0] = '_';
+			for (i = 1; i < 16; i++) {
+				fun_var[i] = fun_name->stringval[i-1];
+			}
+			SYMBOL sym = searchst(fun_var);
+			switch (sym->basicType) {
+				case TYPE_INT: {
+					offs = sym->offset - stkframesize;
+					asmld(MOVL, offs, EAX, sym->nameString);
+				}
+				break;
+				case TYPE_REAL: {
+					offs = sym->offset - stkframesize;
+					asmld(MOVSD, offs, EAX, sym->nameString);
+				}
+				break;
+			}
+
+			cannedcode(funbotcode);	// print function bottom code
+
+		} // end of CASE OP_FUNDCL
+		break;
 	}
 }
 

@@ -179,5 +179,5 @@ graph1:
 .LC4:
 	.string	"*"
 
-        .ident  "CS 375 Compiler - Spring 2017"
+        .ident  "Compiler Principle - Spring 2017"
 ```

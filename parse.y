@@ -141,9 +141,9 @@ para_decl_list	: para_decl_list SEMI para_type_list
 				| para_type_list					{ $$ = $1; }
 				;
 para_type_list	: var_para_list COLON simple_type_decl
-													{ $$ = $3, instVars($1, $3); }
+													{ $$ = $1, instVars($1, $3); }
 				| val_para_list COLON simple_type_decl
-													{ $$ = $3, instVars($1, $3); }
+													{ $$ = $1, instVars($1, $3); }
 				;
 var_para_list	: VAR id_list						{ $$ = $2; }
 				;
@@ -171,7 +171,7 @@ non_label_stmt	: assign_stmt						{ $$ = $1; }
 				| case_stmt							{ $$ = $1; }
 				| goto_stmt							{ $$ = $1; }
 				;
-assign_stmt		: ID ASSIGN expression				{ $$ = binop($2, $1, $3); }
+assign_stmt		: ID ASSIGN expression				{ $$ = binop($2, findId($1), $3); }
 				| ID LB expression RB ASSIGN expression	// array[i], index from 1 defaut
 													{ $$ = binop($5, arrayRef($1, NULL, $3, NULL), $6); }
 				| ID DOT ID ASSIGN expression		{ $$ = binop($4, reduceDot($1, $2, $3), $5); }

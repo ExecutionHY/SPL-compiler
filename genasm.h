@@ -200,4 +200,10 @@ void makeblit(char s[], int labeln);
 /* Output literals and end material*/
 void outlits();
 
+/* Print a section of canned code.  Quits on an empty string.  */
+void cannedcode(char* lines[]);
+
+void asmlabelstr(char name[]);
+
+
 #endif

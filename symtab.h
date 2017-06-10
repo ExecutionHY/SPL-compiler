@@ -109,7 +109,7 @@ int user_label_exists(TOKEN label_tok);
 int get_internal_label_num(int external_label_num);
 void insert_label(int internal_label_num, TOKEN label_tok);
 
-#define HASH_SIZE 26
+#define HASH_SIZE 27	// 26 letters + '_'
 int hashfun(char name[]);
 
 

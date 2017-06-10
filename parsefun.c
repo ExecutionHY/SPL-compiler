@@ -19,7 +19,8 @@ void senmaticError(char* s);
 
 /* See parse.h for all debug constants */
 
-int labelnumber = 0;  // sequential counter for internal label numbers
+// specially, label 0 for the start of program
+int labelnumber = 1;  // sequential counter for internal label numbers
 int debug_call_num = 0;	// sequential counter for finding a specific place during program execution
 char *last_method = "yyparse()"; 	// the method that called the currently-executing method, if applicable
 
@@ -449,6 +450,15 @@ TOKEN findId(TOKEN tok) {
 	
 	SYMBOL sym, typ;
 	sym = searchst(tok->stringval);
+
+	if (sym->kind == SYM_FUNCTION) {
+		int i;
+		for (i = 15; i >= 1; i--) {
+			tok->stringval[i] = tok->stringval[i-1];
+		}
+		tok->stringval[0] = '_';
+		sym = searchst(tok->stringval);
+	}
 
 	if (sym->kind == SYM_CONST) {
 		tok->tokenType = TOKEN_NUM;
@@ -1744,7 +1754,7 @@ TOKEN makeFunDcl(TOKEN head, TOKEN body) {
 	}
 
 	fundcl_tok->operands = head;
-	fundcl_tok->link = body;
+	head->link = body;
 
 	lastblock = blocknumber;	// this is the last block
 	blockoffs[blocknumber] = 0;
@@ -1780,38 +1790,29 @@ TOKEN instFun(TOKEN head) {
 		SYMBOL arglist = symalloc();
 		SYMBOL temp = arglist;
 		while (arg_tok) {
-			SYMBOL arg_sym = symalloc();
-			if (arg_tok->tokenType == RESERVED && arg_tok->whichval == SYS_TYPE - RESERVED_BIAS) {
-				if (strcmp(arg_tok->stringval, "integer")) {
-					arg_sym->kind = SYM_ARGLIST;
-					arg_sym->basicType = TYPE_INT;
-				}
-				else if (strcmp(arg_tok->stringval, "real")) {
-					arg_sym->kind = SYM_ARGLIST;
-					arg_sym->basicType = TYPE_REAL;
-				}
-				else if (strcmp(arg_tok->stringval, "string")) {
-					arg_sym->kind = SYM_ARGLIST;
-					arg_sym->basicType = TYPE_STR;
-				}
-				else if (strcmp(arg_tok->stringval, "char")) {
-					arg_sym->kind = SYM_ARGLIST;
-					arg_sym->basicType = TYPE_CHAR;
-				}
-				else if (strcmp(arg_tok->stringval, "boolean")) {
-					arg_sym->kind = SYM_ARGLIST;
-					arg_sym->basicType = TYPE_BOOL;
-				}
-			}
-			else {
-				senmaticError("sorry we only support SYS_TYPE in functions & procedures");
-			}
-			temp->dataType = arg_sym;
-			temp = arg_sym;
+			SYMBOL arg_sym = searchst(arg_tok->stringval);
+			SYMBOL item = symalloc();
+			item->kind = SYM_ARGLIST;
+			item->basicType = arg_sym->basicType;
+
+			temp->dataType = item;
+			temp = item;
 			arg_tok = arg_tok->link;
 		}
 
 		insertfnx(fun_name->stringval, funtype_sym, arglist);
+
+		// insert "_funname" variable
+		TOKEN new_var = talloc();
+		int i;
+		new_var->stringval[0] = '_';
+		for (i = 1; i < 16; i++) {
+			new_var->stringval[i] = fun_name->stringval[i-1];
+		}
+		new_var->tokenType = TOKEN_ID;
+		
+		instVars(new_var, findType(funtype_tok));
+
 	}
 	// if procedure
 	else {
@@ -1820,39 +1821,24 @@ TOKEN instFun(TOKEN head) {
 		SYMBOL arglist = symalloc();
 		SYMBOL temp = arglist;
 		while (arg_tok) {
-			SYMBOL arg_sym = symalloc();
-			if (arg_tok->tokenType == SYS_TYPE) {
-				if (strcmp(arg_tok->stringval, "integer")) {
-					arg_sym->kind = SYM_ARGLIST;
-					arg_sym->basicType = TYPE_INT;
-				}
-				else if (strcmp(arg_tok->stringval, "real")) {
-					arg_sym->kind = SYM_ARGLIST;
-					arg_sym->basicType = TYPE_REAL;
-				}
-				else if (strcmp(arg_tok->stringval, "string")) {
-					arg_sym->kind = SYM_ARGLIST;
-					arg_sym->basicType = TYPE_STR;
-				}
-				else if (strcmp(arg_tok->stringval, "char")) {
-					arg_sym->kind = SYM_ARGLIST;
-					arg_sym->basicType = TYPE_CHAR;
-				}
-				else if (strcmp(arg_tok->stringval, "boolean")) {
-					arg_sym->kind = SYM_ARGLIST;
-					arg_sym->basicType = TYPE_BOOL;
-				}
-			}
-			else {
-				senmaticError("sorry we only support SYS_TYPE in functions & procedures");
-			}
-			temp->dataType = arg_sym;
-			temp = arg_sym;
+			SYMBOL arg_sym = searchst(arg_tok->stringval);
+			SYMBOL item = symalloc();
+			item->kind = SYM_ARGLIST;
+			item->basicType = arg_sym->basicType;
+
+			temp->dataType = item;
+			temp = item;
 			arg_tok = arg_tok->link;
 		}
 
 		insertfnx(fun_name->stringval, NULL, arglist);
 	}
+
+
+	TOKEN fun_block = makeIntc(blocknumber);
+
+	head->operands = fun_block;
+	fun_block->link = fun_name;
 
 	if (DEBUG & DB_MAKEFUNDCL) {
 		printf(" Finished instFun() at block %d.\n", contblock[blocknumber]);

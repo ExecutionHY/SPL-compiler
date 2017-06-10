@@ -22,7 +22,7 @@ TOKENNODE curr_label = NULL;
 extern int lastblock;
 extern int    blocknumber;       	/* Number of current block being compiled */
 extern int    contblock[MAXBLOCKS];  /* Containing block for each block (the outer block of this block)        */
-int    blockoffs[MAXBLOCKS];  		/* Storage offsets for each block         */
+int    blockoffs[MAXBLOCKS] = {0};  		/* Storage offsets for each block         */
 SYMBOL symtab[MAXBLOCKS][HASH_SIZE];     /* Symbol chain for each block            */
 SYMBOL symend[MAXBLOCKS];     /* End of symbol chain for each block     */
 
@@ -51,21 +51,7 @@ SYMBOL makesym(char name[]) {
 /* Returns pointer to the new symbol table entry, which is empty     */
 /* except for the name.                                              */
 SYMBOL insertsym(char name[]) {
-	SYMBOL sym;
-	sym = makesym(name);
-	int pos = hashfun(name);
-	while (symtab[blocknumber][pos] != NULL) {
-		pos = (pos + 1) % HASH_SIZE;
-		if (pos == hashfun(name)) {
-			printf("Error: symbol table overflow.\n");
-			exit(-1);
-		}
-	}
-	symtab[blocknumber][pos] = sym;
-	sym->blockLevel = blocknumber;
-	if (DEBUG_SYMTAB) printf("insertsym %8s %ld at level %d, pos %d\n",
-		name, (long) sym, blocknumber, pos);
-	return sym;
+	return insertsymat(name, blocknumber);
 }
 SYMBOL insertsymat(char name[], int level) {
 	SYMBOL sym;
@@ -80,12 +66,20 @@ SYMBOL insertsymat(char name[], int level) {
 	}
 	symtab[level][pos] = sym;
 	sym->blockLevel = level;
+
+	// we will use the offset of var in gencode.c
+	if (sym->kind == SYM_VAR) {
+		sym->offset = blockoffs[level];
+		blockoffs[level] += basicsizes[sym->basicType];
+	} 
+
 	if (DEBUG_SYMTAB) printf("insertsym %8s %ld at level %d, pos %d\n",
 		name, (long) sym, level, pos);
 	return sym;
 }
 
 int hashfun(char name[]) {
+	if (name[0] == '_') return 26;
 	return tolower(name[0])-'a';
 }
 

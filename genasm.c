@@ -120,7 +120,7 @@ char* bottomcodeb[] = {
   ""};
 
 char* bottomcodec[] = { 
-  "        .ident  \"CS 375 Compiler - Spring 2017\"",
+  "        .ident  \"Compiler Principle - Spring 2017\"",
   /* "        .section     .note.GNU-stack,\"\",@progbits", /* need this? */
   ""};
 
@@ -198,6 +198,10 @@ void asmexit(char name[])
 void asmlabel(int labeln)
   {  printf(".L%d:\n", labeln);
    }
+void asmlabelstr(char name[]) {
+  printf("%s:\n", name);
+}
+
 
 /* Subroutine call */
 /* Example:  asmcall(code->stringval);    Call function */
