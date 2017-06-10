@@ -936,7 +936,7 @@ TOKEN arrayRef(TOKEN arr, TOKEN tok, TOKEN subs, TOKEN tokb) {
 	
 	// only one const integer
 	if (subs->link == NULL && subs->tokenType == TOKEN_NUM && subs->dataType == TYPE_INT) {
-		int offset = (subs->intval - 4) * arr_varsym->dataType->dataType->size;
+		int offset = (subs->intval-arr_varsym->dataType->lowBound) * arr_varsym->dataType->dataType->size;
 		array_ref = makeAref(arr, makeIntc(offset), NULL);
 		array_ref->dataType = arr_varsym->basicType;
 		return array_ref;
@@ -957,7 +957,7 @@ TOKEN arrayRef(TOKEN arr, TOKEN tok, TOKEN subs, TOKEN tokb) {
 			
 			TOKEN mul_op = makeOp(OP_MUL);
 			TOKEN pos_typesym_size = makeIntc(curr_size);
-			TOKEN neg_typesym_size = makeIntc(curr_size * -1);
+			TOKEN neg_typesym_size = makeIntc(curr_size * -curr_sym->lowBound);
 			
 			mul_op->operands = pos_typesym_size;
 			pos_typesym_size->link = curr_sub;
@@ -1123,7 +1123,8 @@ TOKEN makeFuncall(TOKEN tok, TOKEN fn, TOKEN args) {
 	// Check for type compatibility between the write functions and
 	// the arguments. Correct if necessary.
 	if (strcmp(fn->stringval, "write") == 0 || strcmp(fn->stringval, "writeln") == 0) {
-		fn = write_fxn_args_type_check(fn, args);
+		// do not edit funcall
+		//fn = write_fxn_args_type_check(fn, args);
 		if (!fn) {
 			return NULL;
 		}

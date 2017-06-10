@@ -1,8 +1,33 @@
 program graph1;
+type
+	type1 = record
+		num : integer;
+		value : real;
+	end;
+	type2 = (item0, item1, item2);
+var
+	a : integer;
+	b : real;
 
-var a : integer;
+	c : array[1..10] of integer;
+	d : type1;
+	e : type2;
 begin
 	a := 1;
+	b := 1.1;
+	c[2] := 1;
+	d.num := 1;
+	e := item2;
+
+	if a = d.num then write(a)
+	else a := d.num
+	;
+
+	repeat
+		a := a + 1;
+	until a = 5;
+
+
 end
 .
 
