@@ -391,7 +391,7 @@ void instVars(TOKEN idlist, TOKEN typetok) {
 		printf(" typetok: ");
 		ppexpr(typetok);
 		dbugprint1tok(typetok);
-		printf(" Installing...\n");
+		printf(" Installing at block %d...\n", blocknumber);
 		last_method = "instVars()";
 	}
 	
@@ -445,10 +445,11 @@ TOKEN findId(TOKEN tok) {
 		dbugprint1arg(tok);
 		last_method = "findId()";
 	}
+
 	
 	SYMBOL sym, typ;
 	sym = searchst(tok->stringval);
-	
+
 	if (sym->kind == SYM_CONST) {
 		tok->tokenType = TOKEN_NUM;
 		
@@ -1120,6 +1121,7 @@ TOKEN makeFuncall(TOKEN tok, TOKEN fn, TOKEN args) {
 	
 	funcall_tok->dataType = this_fxn->dataType->basicType;
 	
+	// TODO!!
 	// Check for type compatibility between the write functions and
 	// the arguments. Correct if necessary.
 	if (strcmp(fn->stringval, "write") == 0 || strcmp(fn->stringval, "writeln") == 0) {
@@ -1130,7 +1132,6 @@ TOKEN makeFuncall(TOKEN tok, TOKEN fn, TOKEN args) {
 		}
 	}
 	
-	// (+ i j) => +->operands = i and i->link = j; (funcall_tok fn args)
 	funcall_tok->operands = fn;
 	fn->link = args;
 
@@ -1483,7 +1484,7 @@ TOKEN makeIf(TOKEN tok, TOKEN exp, TOKEN thenpart, TOKEN elsepart) {
 TOKEN makeRepeat(TOKEN tok, TOKEN statements, TOKEN tokb, TOKEN expr) {
 	
 	if (DEBUG & DB_MAKEREPEAT) {
-		printf("(%d)\n", debug_call_num++);
+		printf("(%d) line: %d\n", debug_call_num++, lineCnt);
 		printf("In makeRepeat(), from %s\n", last_method);
 		dbugprint4args(tok, statements, tokb, expr);
 		last_method = "makeRepeat()";
@@ -1522,7 +1523,7 @@ TOKEN makeLabel() {
 	// DO NOT CALL FOR USER LABELS
 	
 	if (DEBUG & DB_MAKELABEL) {
-		printf("(%d)\n", debug_call_num++);
+		printf("(%d) line: %d\n", debug_call_num++, lineCnt);
 		printf("In makeLabel(), from %s\n\n", last_method);
 		last_method = "makeLabel()";
 	}
@@ -1549,7 +1550,7 @@ TOKEN makeLabel() {
 TOKEN makeGoto(int label) {
 	
 	if (DEBUG & DB_MAKEGOTO) {
-		printf("(%d)\n", debug_call_num++);
+		printf("(%d) line: %d\n", debug_call_num++, lineCnt);
 		printf("In makeGoto(), from %s\n", last_method);
 		if (DB_PRINT_ARGS) {
 			printf(" Arguments:\n  %d\n\n", label);
@@ -1582,7 +1583,7 @@ TOKEN makeGoto(int label) {
 TOKEN makeWhile(TOKEN tok, TOKEN expr, TOKEN tokb, TOKEN statement) {
 	
 	if (DEBUG & DB_MAKEWHILE) {
-		printf("(%d)\n", debug_call_num++);
+		printf("(%d) line: %d\n", debug_call_num++, lineCnt);
 		printf("In makeWhile(), from %s\n", last_method);
 		dbugprint4args(tok, expr, tokb, statement);
 		last_method = "makeWhile()";
@@ -1641,7 +1642,7 @@ TOKEN makeFor(TOKEN tok, TOKEN asg, TOKEN dir,
 	TOKEN endexpr, TOKEN tokc, TOKEN statement) {
 	
 	if (DEBUG & DB_MAKEFOR) {
-		printf("(%d)\n", debug_call_num++);
+		printf("(%d) line: %d\n", debug_call_num++, lineCnt);
 		printf("In makeFor(), from %s\n", last_method);
 		dbugprint5args(tok, asg, endexpr, tokc, statement);
 		last_method = "makeFor()";
@@ -1704,7 +1705,7 @@ TOKEN doGoto(TOKEN tok, TOKEN labeltok) {
 	// THIS METHOD SHOULD ONLY BE CALLED FOR A USER LABEL
 	
 	if (DEBUG & DB_DOGOTO) {
-		printf("(%d)\n", debug_call_num++);
+		printf("(%d) line: %d\n", debug_call_num++, lineCnt);
 		printf("In doGoto(), from %s\n", last_method);
 		dbugprint2args(tok, labeltok);
 		last_method = "doGoto()";
@@ -1727,4 +1728,154 @@ TOKEN doGoto(TOKEN tok, TOKEN labeltok) {
 	}
 	
 	return (makeGoto(internal_label_num));
+}
+
+TOKEN makeFunDcl(TOKEN head, TOKEN body) {
+	if (DEBUG & DB_MAKEFUNDCL) {
+		printf("(%d) line: %d\n", debug_call_num++, lineCnt);
+		printf("In makeFunDcl(), from %s\n", last_method);
+		dbugprint2args(head, body);
+		last_method = "makeFunDcl()";
+	}
+	TOKEN  fundcl_tok = makeOp(OP_FUNDCL);
+	if (!fundcl_tok) {
+		printf(" Failed to alloc TOKEN(s), makeLabel().\n");
+		return NULL;
+	}
+
+	fundcl_tok->operands = head;
+	fundcl_tok->link = body;
+
+	lastblock = blocknumber;	// this is the last block
+	blockoffs[blocknumber] = 0;
+	blocknumber++;				// may be another function block
+	contblock[blocknumber] = contblock[lastblock];
+
+	if (DEBUG & DB_MAKEFUNDCL) {
+		printf(" Finished makeFunDcl().\n");
+		dbugprint1tok(fundcl_tok);
+	}
+
+	return fundcl_tok;
+}
+
+TOKEN instFun(TOKEN head) {
+	if (DEBUG & DB_INSTFUN) {
+		printf("(%d) line: %d\n", debug_call_num++, lineCnt);
+		printf("In instFun(), from %s\n", last_method);
+		last_method = "instFun()";
+	}
+
+	TOKEN fun_name = head->link;
+
+	// if function
+	if (strcmp(head->stringval, "function") == 0) {
+		TOKEN funtype_tok = fun_name->link;
+		TOKEN arg_tok = funtype_tok->link;
+		SYMBOL funtype_sym = searchst(funtype_tok->stringval);
+		if (!funtype_sym) {
+			senmaticError("sorry we only support SYS_TYPE in functions & procedures");
+		}
+
+		SYMBOL arglist = symalloc();
+		SYMBOL temp = arglist;
+		while (arg_tok) {
+			SYMBOL arg_sym = symalloc();
+			if (arg_tok->tokenType == RESERVED && arg_tok->whichval == SYS_TYPE - RESERVED_BIAS) {
+				if (strcmp(arg_tok->stringval, "integer")) {
+					arg_sym->kind = SYM_ARGLIST;
+					arg_sym->basicType = TYPE_INT;
+				}
+				else if (strcmp(arg_tok->stringval, "real")) {
+					arg_sym->kind = SYM_ARGLIST;
+					arg_sym->basicType = TYPE_REAL;
+				}
+				else if (strcmp(arg_tok->stringval, "string")) {
+					arg_sym->kind = SYM_ARGLIST;
+					arg_sym->basicType = TYPE_STR;
+				}
+				else if (strcmp(arg_tok->stringval, "char")) {
+					arg_sym->kind = SYM_ARGLIST;
+					arg_sym->basicType = TYPE_CHAR;
+				}
+				else if (strcmp(arg_tok->stringval, "boolean")) {
+					arg_sym->kind = SYM_ARGLIST;
+					arg_sym->basicType = TYPE_BOOL;
+				}
+			}
+			else {
+				senmaticError("sorry we only support SYS_TYPE in functions & procedures");
+			}
+			temp->dataType = arg_sym;
+			temp = arg_sym;
+			arg_tok = arg_tok->link;
+		}
+
+		insertfnx(fun_name->stringval, funtype_sym, arglist);
+	}
+	// if procedure
+	else {
+		TOKEN arg_tok = fun_name->link;
+
+		SYMBOL arglist = symalloc();
+		SYMBOL temp = arglist;
+		while (arg_tok) {
+			SYMBOL arg_sym = symalloc();
+			if (arg_tok->tokenType == SYS_TYPE) {
+				if (strcmp(arg_tok->stringval, "integer")) {
+					arg_sym->kind = SYM_ARGLIST;
+					arg_sym->basicType = TYPE_INT;
+				}
+				else if (strcmp(arg_tok->stringval, "real")) {
+					arg_sym->kind = SYM_ARGLIST;
+					arg_sym->basicType = TYPE_REAL;
+				}
+				else if (strcmp(arg_tok->stringval, "string")) {
+					arg_sym->kind = SYM_ARGLIST;
+					arg_sym->basicType = TYPE_STR;
+				}
+				else if (strcmp(arg_tok->stringval, "char")) {
+					arg_sym->kind = SYM_ARGLIST;
+					arg_sym->basicType = TYPE_CHAR;
+				}
+				else if (strcmp(arg_tok->stringval, "boolean")) {
+					arg_sym->kind = SYM_ARGLIST;
+					arg_sym->basicType = TYPE_BOOL;
+				}
+			}
+			else {
+				senmaticError("sorry we only support SYS_TYPE in functions & procedures");
+			}
+			temp->dataType = arg_sym;
+			temp = arg_sym;
+			arg_tok = arg_tok->link;
+		}
+
+		insertfnx(fun_name->stringval, NULL, arglist);
+	}
+
+	if (DEBUG & DB_MAKEFUNDCL) {
+		printf(" Finished instFun() at block %d.\n", contblock[blocknumber]);
+	}
+
+	return head;
+}
+
+void endVarPart() {
+	int thisblock = blocknumber;
+	blocknumber++;
+	contblock[blocknumber] = thisblock;
+
+	if (DEBUG) {
+		printf(" endVarPart(), blocknumber = %d.\n", blocknumber);
+	}
+}
+
+TOKEN endDecl(TOKEN decl) {
+	blocknumber = contblock[blocknumber];
+	if (DEBUG) {
+		printf(" endDecl(), blocknumber = %d, cont = %d.\n", blocknumber, contblock[blocknumber]);
+		dbugprint1tok(decl);
+	}
+	return decl;
 }

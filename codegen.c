@@ -78,12 +78,27 @@ your .s file.
          */
 
 void gencode(TOKEN pcode, int varsize, int maxlabel){
-	TOKEN name, code;
+	TOKEN name, fund, body; // program name, function declear, program body
 	name = pcode->operands;
-	code = name->link;
 	nextlabel = maxlabel + 1;
+	fund = name->link;
+	while (fund->whichval == OP_FUNDCL) {
+		fund = fund->link;
+	}
+	body = fund;
+	if (name->link->whichval == OP_FUNDCL) fund = name->link;
+	else fund = NULL;
+
 	stkframesize = asmentry(name->stringval,varsize);
-	genc(code);
+	genc(body);
+	asmjump(JMP, 0);	// jump to L0 (end)
+
+	while (fund->whichval == OP_FUNDCL) {
+		genc(body);
+		fund = fund->link;
+	}
+
+	asmlabel(0);		// label L0 (end)
 	asmexit(name->stringval);
 }
 
@@ -279,7 +294,13 @@ int genarith(TOKEN code) {
 			reg_num = lhs_reg;
 		}
 		break;
+		default:
+			return symbol_is_null_int(NULL);
+		break;
 	}
+
+	first_op_genarith = NULL;
+	
 	return reg_num;
 }
 
@@ -756,7 +777,7 @@ void genc(TOKEN code){
 			}
 
 			lhs = code->operands;
-			asmjump(JMP, lhs->intval);
+			asmjump(JMP, lhs->intval+1);
 		}
 		break;
 		case OP_LABEL: {
@@ -769,7 +790,7 @@ void genc(TOKEN code){
 			}
 
 			lhs = code->operands;
-			asmlabel(lhs->intval);
+			asmlabel(lhs->intval+1);
 		}
 		break;
 		case OP_IF: {
@@ -818,7 +839,14 @@ void genc(TOKEN code){
 					asmcall(lhs->stringval);
 					makeblit(rhs->stringval, nextlabel++);
 				}
-
+				else if (rhs->tokenType == TOKEN_CHAR) {
+					char s[2];
+					s[0] = rhs->charval;
+					s[1] = '\0';
+					asmlitarg(nextlabel, EDI);
+					asmcall(lhs->stringval);
+					makeblit(rhs->stringval, nextlabel++);
+				}
 				else if (rhs->tokenType == OPERATOR) {
 					if (rhs->whichval == OP_AREF) {
 
@@ -876,6 +904,7 @@ void genc(TOKEN code){
 					}
 				}
 			}
+			// other function
 			else {
 
 			}

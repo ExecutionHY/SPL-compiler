@@ -21,6 +21,7 @@
 #define SYM_RECORD		7
 #define SYM_TYPE		8
 #define SYM_POINTER		9
+#define SYM_ARGLIST		10
 
 #define PPSYMDEBUG 0
 
@@ -90,6 +91,9 @@ void printst(void);
 SYMBOL insertbt(char name[], int basictp, int siz);
 SYMBOL insertfn(char name[], SYMBOL resulttp, SYMBOL argtp);
 void initsyms(void);    /* initializes pre-defined symbols */
+SYMBOL insertfnx(char name[], SYMBOL resulttp, SYMBOL arglist);
+SYMBOL insertsymat(char name[], int level);
+
 
 /* alignsize returns the required alignment boundary for a type  */
 int alignsize(SYMBOL sym);
@@ -98,7 +102,8 @@ int alignsize(SYMBOL sym);
 int blocknumber;           /* Number of current block being compiled */
 int blockoffs[MAXBLOCKS];  /* Storage offsets for each block         */
 int basicsizes[5];
-
+int contblock[MAXBLOCKS];
+int lastblock;
 
 int user_label_exists(TOKEN label_tok);
 int get_internal_label_num(int external_label_num);

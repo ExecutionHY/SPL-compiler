@@ -20,7 +20,7 @@ char* opprint[]  = {
 	"<", "<=", "=", "<>", ">", ">=", ":=",
     "and", "or", "not", "div", "mod", "^",
     "in", "if", "goto", "progn", "label", "funcall",
-    "aref", "program", "float", "fix",
+    "aref", "program", "float", "fix", "fundcl",
 };
 
 int opsize[] = {
@@ -28,7 +28,7 @@ int opsize[] = {
 	1, 2, 1, 2, 1, 2, 2,
 	3, 2, 3, 3, 3, 1,
 	2, 2, 4, 5, 5, 7,
-	4, 7, 5, 3,
+	4, 7, 5, 3, 6,
 };
 
 /* print a token for debugging */
@@ -55,12 +55,15 @@ void printtok(TOKEN tok) {
 		case TOKEN_ID:
 			printf ("%s", tok->stringval);
 			break;
-		case TOKEN_STR:
-			printf ("'%s'", tok->stringval);
-			break;
+    case TOKEN_STR:
+      printf ("'%s'", tok->stringval);
+      break;
 		case RESERVED: 
 			printf ("%s", tok->stringval);
 			break;
+    case TOKEN_CHAR:
+      printf ("'%c'", tok->charval);
+      break;
 		case TOKEN_NUM:
 			switch (tok->dataType) {
 				case TYPE_INT:

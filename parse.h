@@ -21,6 +21,7 @@ TOKEN makePnb(TOKEN tok, TOKEN statements);
 TOKEN makeProgn(TOKEN tok, TOKEN statements);
 
 /* cons links a new item onto a list */
+// it's ok if item is a list
 TOKEN cons(TOKEN list, TOKEN item);
 /* instconst installs a constant in the symbol table */
 void  instConst(TOKEN idtok, TOKEN consttok);
@@ -149,6 +150,21 @@ TOKEN makeLoopIncr(TOKEN var, int incr_amt);
    tok is a (now) unused token that is recycled. */
 TOKEN doGoto(TOKEN tok, TOKEN labeltok);
 
+/* nconc concatenates two token lists, destructively, by making the last link
+   of lista point to listb.
+   (nconc '(a b) '(c d e))  =  (a b c d e)  */
+/* nconc is useful for putting together two fieldlist groups to
+   make them into a single list in a record declaration. */
+TOKEN nconc(TOKEN lista, TOKEN listb);
+
+TOKEN makeFunDcl(TOKEN head, TOKEN body);
+
+TOKEN instFun(TOKEN head);
+
+// end var part, set blocknumber as new block
+void endVarPart();
+// end function declear, set blocknumber as outer block
+TOKEN endDecl(TOKEN decl);
 
 
 /* parse.h     Gordon S. Novak Jr.    */
@@ -194,12 +210,6 @@ TOKEN maketimes(TOKEN lhs, TOKEN rhs, TOKEN tok);
 /* mulint multiplies expression exp by integer n */
 TOKEN mulint(TOKEN exp, int n);
 
-/* nconc concatenates two token lists, destructively, by making the last link
-   of lista point to listb.
-   (nconc '(a b) '(c d e))  =  (a b c d e)  */
-/* nconc is useful for putting together two fieldlist groups to
-   make them into a single list in a record declaration. */
-TOKEN nconc(TOKEN lista, TOKEN listb);
 
 
 /* searchins will search for symbol, inserting it if not present. */
@@ -246,7 +256,7 @@ typedef short boolean;
 #define NUM_COERCE_IMPLICIT		1
 #define ELIM_NESTED_PROGN		1     /* disables makepnb() functionality and defaults to makeprogn() if 0 */
 #define DEBUG_MASTER_SWITCH		1     /* 1 for true, 0 for false  */
-#define DB_PRINT_ARGS			1     /* print function arguments */
+#define DB_PRINT_ARGS			0     /* print function arguments */
 
 #define DB_CONS       1             /* bit to trace cons() */
 #define DB_BINOP      2             /* bit to trace binop() */
@@ -295,6 +305,8 @@ typedef short boolean;
 #define DB_INSTLABEL    30720 //16384  /* bit to trace instlabel() */
 #define DB_SETTOKTYPE   31744 //16896  /* bit to trace settoktype() */
 #define DB_MAKESUBRANGE 32768 //17408  /* bit to trace makesubrange() */
+#define DB_MAKEFUNDCL	1
+#define DB_INSTFUN		2
 
 #define DEBUG (DB_MAKESUBRANGE * 2 - 1) & DEBUG_MASTER_SWITCH * (DB_MAKESUBRANGE * 2 - 1)    /* mask */
 

@@ -75,9 +75,14 @@ void printtoken(TOKEN tok) {
                 tok->tokenType, tok->whichval,
                 resprnt[tok->whichval] );
            break;
-        case TOKEN_ID: case TOKEN_STR:
+        case TOKEN_ID:
+        case TOKEN_STR:
            printf ("tokenType: %2d  value:  %16s\n",
-	           tok->tokenType, tok->stringval);
+             tok->tokenType, tok->stringval);
+           break;
+        case TOKEN_CHAR:
+           printf ("tokenType: %2d  value:  %16c\n",
+             tok->tokenType, tok->charval);
            break;
         case TOKEN_NUM:
             switch (tok->dataType) {

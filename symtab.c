@@ -19,17 +19,18 @@ TOKENNODE curr_label = NULL;
 /* BASEOFFSET is the offset for the first variable */
 #define BASEOFFSET 0
 
-int    blocknumber = 0;       /* Number of current block being compiled */
-int    contblock[MAXBLOCKS];  /* Containing block for each block        */
-int    blockoffs[MAXBLOCKS];  /* Storage offsets for each block         */
+extern int lastblock;
+extern int    blocknumber;       	/* Number of current block being compiled */
+extern int    contblock[MAXBLOCKS];  /* Containing block for each block (the outer block of this block)        */
+int    blockoffs[MAXBLOCKS];  		/* Storage offsets for each block         */
 SYMBOL symtab[MAXBLOCKS][HASH_SIZE];     /* Symbol chain for each block            */
 SYMBOL symend[MAXBLOCKS];     /* End of symbol chain for each block     */
 
 /* Sizes of basic types  INTEGER  REAL  	CHAR  	BOOL 	 STRING   */
 int basicsizes[5] =      { 4,       8,       1,         4,        16 };
 
-char* symprint[10]  = {" ", "BASIC", "CONST", "VAR", "SYM_SUBRANGE",
-                       "FUNCTION", "ARRAY", "RECORD", "TYPE"};
+char* symprint[10]  = {"ARGM", "BASIC", "CONST", "VAR", "SYM_SUBRANGE",
+                       "FUNCTION", "ARRAY", "RECORD", "TYPE", "ARGLIST"};
 int symsize[10] = { 1, 5, 5, 3, 8, 8, 5, 6, 4, 7 };
 
 /* allocate a new symbol record */
@@ -64,6 +65,23 @@ SYMBOL insertsym(char name[]) {
 	sym->blockLevel = blocknumber;
 	if (DEBUG_SYMTAB) printf("insertsym %8s %ld at level %d, pos %d\n",
 		name, (long) sym, blocknumber, pos);
+	return sym;
+}
+SYMBOL insertsymat(char name[], int level) {
+	SYMBOL sym;
+	sym = makesym(name);
+	int pos = hashfun(name);
+	while (symtab[level][pos] != NULL) {
+		pos = (pos + 1) % HASH_SIZE;
+		if (pos == hashfun(name)) {
+			printf("Error: symbol table overflow.\n");
+			exit(-1);
+		}
+	}
+	symtab[level][pos] = sym;
+	sym->blockLevel = level;
+	if (DEBUG_SYMTAB) printf("insertsym %8s %ld at level %d, pos %d\n",
+		name, (long) sym, level, pos);
 	return sym;
 }
 
@@ -273,7 +291,7 @@ void printstlevel(int level) {
 /* Print all entries in the symbol table */
 void printst() {
 	int level;
-	for (level = 0; level <= blocknumber; level++)
+	for (level = 0; level <= lastblock; level++)
 		printstlevel(level);
 }
 
@@ -302,6 +320,21 @@ SYMBOL insertfn(char name[], SYMBOL resulttp, SYMBOL argtp) {
 	if (argtp != NULL) arg->basicType = argtp->basicType;
 	arg->link = NULL;
 	res->link = arg;
+	sym->dataType = res;
+	return sym;
+}
+
+// insert function with argument list
+SYMBOL insertfnx(char name[], SYMBOL resulttp, SYMBOL arglist) {
+	SYMBOL sym, res, arg;
+	sym = insertsymat(name, contblock[blocknumber]);
+	sym->kind = SYM_FUNCTION;
+	res = symalloc();
+	res->kind = SYM_ARGM;
+	res->dataType = resulttp;
+	if (resulttp != NULL) res->basicType = resulttp->basicType;
+
+	res->link = arglist;
 	sym->dataType = res;
 	return sym;
 }
@@ -345,6 +378,7 @@ void initsyms() {
 	//sym = insertfn("writelni", NULL, intsym);
 	//sym = insertfn("eof", boolsym, NULL);
 	blocknumber = 1;             /* Start the user program in block 1 */
+	lastblock = 1;
 	contblock[1] = 0;
 }
 

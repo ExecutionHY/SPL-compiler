@@ -56,7 +56,7 @@ sub_routine		: routine_head routine_body			{ $$ = cons($1, $2); }
 				;
 
 routine_head	: label_part const_part type_part var_part routine_part
-													{ $$ = $5; }	// definitions are not in code tree
+													{ $$ = endDecl($5); }	// definitions are not in code tree
 				;
 label_part		: // empty
 				;
@@ -107,47 +107,47 @@ id_list			: id_list COMMA ID					{ $$ = cons($1, $3); }
 				| ID								{ $$ = $1; }
 				;
 // var part
-var_part		: VAR var_decl_list					{ $$ = NULL; }
-				| // empty
+var_part		: VAR var_decl_list					{ endVarPart(); }
+				| /* empty */						{ endVarPart(); }
 				;
 var_decl_list	: var_decl_list var_decl			{ $$ = NULL; }
 				| var_decl							{ $$ = NULL; }
 				;
 var_decl		: id_list COLON type_decl SEMI		{ instVars($1, $3); }	// install vars
 				;
-// routine part		// TODO
-routine_part	: routine_part function_decl		{ $$ = NULL; }
-				| routine_part procedure_decl		{ $$ = NULL; }
-				| function_decl						{ $$ = NULL; }
-				| procedure_decl					{ $$ = NULL; }
-				| // empty
+// routine part
+routine_part	: routine_part function_decl		{ $$ = cons($1, $2); }
+				| routine_part procedure_decl		{ $$ = cons($1, $2); }
+				| function_decl						{ $$ = $1; }
+				| procedure_decl					{ $$ = $1; }
+				| /* empty */						{ $$ = NULL; }
 				;
 function_decl	: function_head SEMI sub_routine SEMI
-													{ $$ = NULL; }
+													{ $$ = makeFunDcl($1, $3); }
 				;
 function_head	: FUNCTION ID parameters COLON simple_type_decl
-													{ $$ = NULL; }
+													{ $$ = instFun(cons($1, cons($2, cons($5, $3)))); } // FUNCTION, ID, type, para
 				;
 procedure_decl	: procedure_head SEMI sub_routine SEMI
-													{ $$ = NULL; }
+													{ $$ = makeFunDcl($1, $3); }
 				;
-procedure_head	: PROCEDURE ID parameters			{ $$ = NULL; }
+procedure_head	: PROCEDURE ID parameters			{ $$ = instFun(cons($1, cons($2, $3))); }	// PROCEDURE, ID, para
 				;
-parameters		: LP para_decl_list RP				{ $$ = NULL; }
-				| // empty
+parameters		: LP para_decl_list RP				{ $$ = $2; }
+				| /* empty */						{ $$ = NULL; }
 				;
 para_decl_list	: para_decl_list SEMI para_type_list
-													{ $$ = NULL; }
-				| para_type_list					{ $$ = NULL; }
+													{ $$ = cons($1, $3); }
+				| para_type_list					{ $$ = $1; }
 				;
 para_type_list	: var_para_list COLON simple_type_decl
-													{ $$ = NULL; }
+													{ $$ = $3, instVars($1, $3); }
 				| val_para_list COLON simple_type_decl
-													{ $$ = NULL; }
+													{ $$ = $3, instVars($1, $3); }
 				;
-var_para_list	: VAR id_list						{ $$ = NULL; }
+var_para_list	: VAR id_list						{ $$ = $2; }
 				;
-val_para_list	: id_list							{ $$ = NULL; }
+val_para_list	: id_list							{ $$ = $1; }
 				;
 
 // routine body
@@ -255,5 +255,6 @@ int yyerror(s) char *s; {
 
 void senmaticError(char* s) {
 	fprintf(stderr, "Senmatic Error at line %d: %s\n", lineCnt, s);
+	printst();
 	exit(-1);
 }

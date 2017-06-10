@@ -74,6 +74,7 @@ typedef struct tokn {
 #define OP_PROGRAM		26
 #define OP_FLOAT		27
 #define OP_FIX			28
+#define OP_FUNDCL		29		/* function declear */
 
 #define TYPE_INT    0             /* number types */
 #define TYPE_REAL   1
