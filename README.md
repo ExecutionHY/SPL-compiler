@@ -6,11 +6,11 @@ Reference from CS375: UT
 
 Materials: ftp://ftp.cs.utexas.edu/pub/novak/cs375/
 
-### requires
+### Requires
 
 SPL is a Simple Pascal Language. The target is to compile SPL programs into x86 assemble codes.
 
-### attention
+### Attention
 
 - I'm not good at Pascal & X86 asm, so the result might be wrong.
 - At least there's no running bug within test files.
