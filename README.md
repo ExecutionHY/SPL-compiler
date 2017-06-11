@@ -1,16 +1,19 @@
 # SPL-compiler
 
-reference from CS375: UT
+Course project of Compile Principle in CS, ZJU.
 
-materials: ftp://ftp.cs.utexas.edu/pub/novak/cs375/
+Reference from CS375: UT
+
+Materials: ftp://ftp.cs.utexas.edu/pub/novak/cs375/
 
 ### requires
 
-SPL is a Simple Pascal Language.
+SPL is a Simple Pascal Language. The target is to compile SPL programs into x86 assemble codes.
 
 ### attention
 
-- Upper or lower case do not matter in Reserved Words.
+- I'm not good at Pascal & X86 asm, so the result might be wrong.
+- At least there's no running bug within test files.
 
 ## Part 1
 
@@ -19,14 +22,13 @@ Lexical Analyzer - lexer
 #### New Files
 
 - lexan.l
-- mainliner.c
+- mainlexer.c
 - Makefile
 - lexan.h *
 - token.h *
 
 
 - printtoken.c	*
-
 
 ### Instruction
 
@@ -95,6 +97,7 @@ $ make clean
 $ make parser
 $ ./parser < [SPL-file]
 ```
+
 ```
 yyparse result =        0
  token 140443849342752  OP       program  dtype  0  link 0  operands 140443849339712
@@ -117,10 +120,8 @@ Code Generator - compiler
 - codegen.c
 - codegen.h
 - maincompiler.c
-- driver.c *
 - genasm.c *
 - genasm.h *
-
 
 ### Instruction
 
