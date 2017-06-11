@@ -98,6 +98,8 @@ $ make parser
 $ ./parser < [SPL-file]
 ```
 
+### Output
+
 ```
 yyparse result =        0
  token 140443849342752  OP       program  dtype  0  link 0  operands 140443849339712
@@ -131,8 +133,10 @@ $ make compiler
 $ ./compiler < [SPL-file]
 ```
 
+### Output
+
 ```
-# ---------------- Beginning of Generated Code --------------------
+# ---------------------- Beginning of Generated Code --------------------
         .file   "foo"
         .text
 .globl graph1
@@ -148,11 +152,13 @@ graph1:
         subq	$32, %rsp 	  # make space for this stack frame
 	movq	%rbx, %r9        # save %rbx (callee-saved) in %r9
 # ------------------------- begin Your code -----------------------------
+	jmp	.L0 			#  jump 
+.L0:
 	movl	$7,%eax         	#  7 -> %eax
 	movl	%eax,-28(%rbp)     	#  %eax -> lim
 	movl	$0,%eax         	#  0 -> %eax
 	movl	%eax,-32(%rbp)     	#  %eax -> i
-.L0:
+.L1:
 	movl	-32(%rbp),%eax     	#  i -> %eax
 	movl	-28(%rbp),%ecx     	#  lim -> %ecx
 	cmpl	%ecx,%eax           	#  compare %eax - %ecx
@@ -165,7 +171,7 @@ graph1:
 	movl	$1,%ecx         	#  1 -> %ecx
 	addl	%ecx,%eax         	#  %eax + %ecx -> %eax
 	movl	%eax,-32(%rbp)     	#  %eax -> i
-	jmp	.L0 			#  jump 
+	jmp	.L1 			#  jump 
 .L3:
 # ----------------------- begin Epilogue code ---------------------------
 	movq	%r9, %rbx        # restore %rbx (callee-saved) from %r9
