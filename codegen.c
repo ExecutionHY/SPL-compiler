@@ -992,8 +992,6 @@ void genc(TOKEN code){
 
 			TOKEN arglist;
 
-			ppexpr(rhs);
-
 			// store arguments into vars(memory)
 			if (strcmp(lhs->stringval, "function") == 0) {
 				arglist = lhs->operands->link->link->link;

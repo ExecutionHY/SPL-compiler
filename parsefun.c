@@ -16,6 +16,7 @@
 
 extern int lineCnt;
 void senmaticError(char* s);
+void senmaticWarning(char* s);
 
 /* See parse.h for all debug constants */
 
@@ -155,6 +156,7 @@ TOKEN findType(TOKEN tok) {
 		char s[64];
 		sprintf(s, "type \"%s\" not defined", tok->stringval);
 		senmaticError(s);
+		return NULL;
 	}
 	
 	typ = sym->dataType;
@@ -409,6 +411,7 @@ void instVars(TOKEN idlist, TOKEN typetok) {
 			char s[64];
 			sprintf(s, "redefinition of var \"%s\"", idlist->stringval);
 			senmaticError(s);
+			return;
 		}
 
 		sym = insertsym(idlist->stringval);
@@ -463,6 +466,7 @@ TOKEN findId(TOKEN tok) {
 		char s[64];
 		sprintf(s, "var \"%s\" not defined", tok->stringval);
 		senmaticError(s);
+		return NULL;
 	}
 
 	if (sym->kind == SYM_FUNCTION) {
@@ -523,6 +527,7 @@ void instType(TOKEN typename, TOKEN typetok) {
 		char s[64];
 		sprintf(s, "type \"%s\" redefinition", typename->stringval);
 		senmaticError(s);
+		return;
 	}
 
 	sym = insertsym(typename->stringval);  // insert if not found
@@ -702,7 +707,10 @@ TOKEN instDotdot(TOKEN lowtok, TOKEN dottok, TOKEN hightok) {
 			lowb = sym1->constval.intNum;
 			highb = sym2->constval.intNum;
 		}
-		else senmaticError("wrong type for DOTDOT");
+		else {
+			senmaticError("wrong type for DOTDOT");
+			return NULL;
+		}
 	}
 	// INT DOT INT
 	else if (lowtok->tokenType == TOKEN_NUM && hightok->tokenType == TOKEN_NUM &&
@@ -710,7 +718,10 @@ TOKEN instDotdot(TOKEN lowtok, TOKEN dottok, TOKEN hightok) {
 		lowb = lowtok->intval;
 		highb = hightok->intval;
 	}
-	else senmaticError("wrong type for DOTDOT");
+	else {
+		senmaticError("wrong type for DOTDOT");
+		return NULL;
+	}
 
 
 	TOKEN out = makeSubrange(dottok, lowtok->intval, hightok->intval);
@@ -745,6 +756,7 @@ TOKEN instArray(TOKEN bounds, TOKEN typetok) {
 		char s[64];
 		sprintf(s, "type \"%s\" not defined", typetok->stringval);
 		senmaticError(s);
+		return NULL;
 	}
 	
 	while (curr_bound) {
@@ -855,10 +867,11 @@ TOKEN instFields(TOKEN idlist, TOKEN typetok) {
 	SYMBOL recsym, typesym;
 	typesym = searchst(typetok->stringval);
 
-	if (typesym) {
+	if (!typesym) {
 		char s[64];
 		sprintf(s, "type \"%s\" not defined", typetok->stringval);
 		senmaticError(s);
+		return NULL;
 	}
 
 	TOKEN temp = idlist;
@@ -955,6 +968,7 @@ TOKEN arrayRef(TOKEN arr, TOKEN tok, TOKEN subs, TOKEN tokb) {
 		char s[64];
 		sprintf(s, "array \"%s\" not defined", arr->stringval);
 		senmaticError(s);
+		return NULL;
 	}
 	
 	temp = arr_varsym->dataType;
@@ -1155,6 +1169,7 @@ TOKEN makeFuncall(TOKEN tok, TOKEN fn, TOKEN args) {
 		char s[64];
 		sprintf(s, "function/procedure \"%s\" not defined", fn->stringval);
 		senmaticError(s);
+		return NULL;
 	}
 	
 	funcall_tok->dataType = this_fxn->dataType->basicType;
@@ -1200,6 +1215,7 @@ TOKEN write_fxn_args_type_check(TOKEN fn, TOKEN args) {
 		char s[64];
 		sprintf(s, "function \"%s\" not defined", fn->stringval);
 		senmaticError(s);
+		return NULL;
 	}
 	
 	int fn_arg_type = fn_sym->dataType->link->basicType;
@@ -1286,6 +1302,7 @@ TOKEN get_offset(TOKEN var, TOKEN field) {
 		char s[64];
 		sprintf(s, "var \"%s\" not defined", root_name->stringval);
 		senmaticError(s);
+		return NULL;
 	}
 	
 	int var_is_arefop = 0;
@@ -1305,6 +1322,7 @@ TOKEN get_offset(TOKEN var, TOKEN field) {
 		char s[64];
 		sprintf(s, "symbol table entry \"%s\" is corrupt, pos 1", root_name->stringval);
 		senmaticError(s);
+		return NULL;
 	}
 	
 	while (temp) {
@@ -1372,6 +1390,7 @@ TOKEN get_offset(TOKEN var, TOKEN field) {
 			char s[64];
 			sprintf(s, "symbol table entry \"%s\" is corrupt, pos 2", root_name->stringval);
 			senmaticError(s);
+			return NULL;
 		}
 		
 		while (temp1) {
@@ -1385,6 +1404,7 @@ TOKEN get_offset(TOKEN var, TOKEN field) {
 			char s[64];
 			sprintf(s, "symbol table entry \"%s\" is corrupt, pos 3", root_name->stringval);
 			senmaticError(s);
+			return NULL;
 		}
 		
 		while (temp1 && !found) {
@@ -1818,6 +1838,7 @@ TOKEN instFun(TOKEN head) {
 		SYMBOL funtype_sym = searchst(funtype_tok->stringval);
 		if (!funtype_sym) {
 			senmaticError("sorry we only support SYS_TYPE in functions & procedures");
+			return NULL;
 		}
 
 		SYMBOL arglist = symalloc();

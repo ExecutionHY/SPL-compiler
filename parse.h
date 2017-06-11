@@ -255,7 +255,7 @@ typedef short boolean;
 
 #define NUM_COERCE_IMPLICIT		1
 #define ELIM_NESTED_PROGN		1     /* disables makepnb() functionality and defaults to makeprogn() if 0 */
-#define DEBUG_MASTER_SWITCH		0     /* 1 for true, 0 for false  */
+#define DEBUG_MASTER_SWITCH		1     /* 1 for true, 0 for false  */
 #define DB_PRINT_ARGS			1     /* print function arguments */
 
 #define DB_CONS       1             /* bit to trace cons() */
