@@ -87,7 +87,7 @@ char* instcompr[] = {"->", "->",  "->", "sign-extend", "+", "-", "*", "/",
 /*   20      21       22      23      24      25     26     */
     "+",     "-",     "*",    "&",   "negq", "orq", "notq" };
 char* topcode[] = {
-  "# ---------------- Beginning of Generated Code --------------------",
+  "# ---------------------- Beginning of Generated Code --------------------",
   ""};
 
 char* topcodeb[] = {

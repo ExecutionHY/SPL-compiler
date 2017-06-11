@@ -836,23 +836,34 @@ void genc(TOKEN code){
 			lhs = code->operands;
 			rhs = code->operands->link;
 			int if_label_num = genarith(lhs);
-			/*
-			if (rhs->whichval == OP_PROGN) {
-				if (rhs->link != NULL) {
-					asmjump(JMP, saved_label_num);
-				}
-			}*/
-			asmjump(JMP, nextlabel);
-			int else_label_num = nextlabel++;
-			int endif_label_num = nextlabel++;
 
-			asmlabel(if_label_num);
-			genc(rhs);
-			asmjump(JMP, endif_label_num);
+			int else_label_num, endif_label_num;
+			if (rhs->link) else_label_num = nextlabel++;
+			endif_label_num = nextlabel++;
 
-			asmlabel(else_label_num);
-			genc(rhs->link);
-			asmlabel(endif_label_num);
+			// have else
+			if (rhs->link) {
+				asmjump(JMP, else_label_num);	// false -> else_label
+
+				asmlabel(if_label_num);			// if_label
+				genc(rhs);
+				asmjump(JMP, endif_label_num);	// jump -> endif
+
+				asmlabel(else_label_num);		// else_label
+				genc(rhs->link);
+				asmlabel(endif_label_num);		// endif_label
+			}
+			// no else
+			else {
+				asmjump(JMP, endif_label_num);	// false -> endif_label
+
+				asmlabel(if_label_num);			// if_label
+				genc(rhs);
+				//asmjump(JMP, endif_label_num);	// jump -> endif, not necessary
+
+				asmlabel(endif_label_num);		// endif_label
+			}
+			
 		}
 		break;
 		// procedures. functions will be generate by OP_ASSIGN / getarith
@@ -979,52 +990,64 @@ void genc(TOKEN code){
 
 			cannedcode(funtopcode);	// print function top code
 
-			TOKEN funtype = lhs->operands->link->link;	// function or procedure
+			TOKEN arglist;
+
+			ppexpr(rhs);
 
 			// store arguments into vars(memory)
-			if (strcmp(funtype->stringval, "function") == 0) {
-				TOKEN arglist = funtype->link->link;
-				while (arglist) {
-					SYMBOL argsym = searchst(arglist->stringval);
-					switch (argsym->basicType) {
-						case TYPE_INT: {
-							reg_num = getreg(TYPE_INT);
-							offs = argsym->offset - stkframesize;
-							asmst(MOVL, reg_num, offs, argsym->nameString);
-						}
-						break;
-						case TYPE_REAL: {
-							reg_num = getreg(TYPE_REAL);
-							offs = argsym->offset - stkframesize;
-							asmst(MOVSD, reg_num, offs, argsym->nameString);
-						}
-						break;
+			if (strcmp(lhs->stringval, "function") == 0) {
+				arglist = lhs->operands->link->link->link;
+			}
+			else {
+				arglist = lhs->operands->link->link;
+			}
+			int index = 0;
+			while (arglist) {
+				SYMBOL argsym = searchst(arglist->stringval);
+				switch (argsym->basicType) {
+					case TYPE_INT: {
+						reg_num = arg_reg[index++];
+						mark_reg_used(reg_num);
+						offs = argsym->offset - stkframesize;
+						asmst(MOVL, reg_num, offs, argsym->nameString);
 					}
-					arglist = arglist->link;
+					break;
+					case TYPE_REAL: {
+						reg_num = arg_reg[index++];
+						mark_reg_used(reg_num);
+						offs = argsym->offset - stkframesize;
+						asmst(MOVSD, reg_num, offs, argsym->nameString);
+					}
+					break;
 				}
+				arglist = arglist->link;
 			}
 
 			genc(rhs);	// routine body
 
 			TOKEN fun_name = lhs->operands->link;
-			char fun_var[16];
-			int i;
-			fun_var[0] = '_';
-			for (i = 1; i < 16; i++) {
-				fun_var[i] = fun_name->stringval[i-1];
-			}
-			SYMBOL sym = searchst(fun_var);
-			switch (sym->basicType) {
-				case TYPE_INT: {
-					offs = sym->offset - stkframesize;
-					asmld(MOVL, offs, EAX, sym->nameString);
+
+			// store return value into %eax
+			if (strcmp(lhs->stringval, "function") == 0) {
+				char fun_var[16];
+				int i;
+				fun_var[0] = '_';
+				for (i = 1; i < 16; i++) {
+					fun_var[i] = fun_name->stringval[i-1];
 				}
-				break;
-				case TYPE_REAL: {
-					offs = sym->offset - stkframesize;
-					asmld(MOVSD, offs, EAX, sym->nameString);
+				SYMBOL sym = searchst(fun_var);
+				switch (sym->basicType) {
+					case TYPE_INT: {
+						offs = sym->offset - stkframesize;
+						asmld(MOVL, offs, EAX, sym->nameString);
+					}
+					break;
+					case TYPE_REAL: {
+						offs = sym->offset - stkframesize;
+						asmld(MOVSD, offs, EAX, sym->nameString);
+					}
+					break;
 				}
-				break;
 			}
 
 			cannedcode(funbotcode);	// print function bottom code

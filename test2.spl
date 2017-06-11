@@ -29,6 +29,3 @@ begin
 	writeln(i);
 end
 .
-
-
-

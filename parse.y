@@ -27,6 +27,7 @@ extern int lineCnt;
 extern int labelnumber;
 
 void senmaticError(char* s);
+void senmaticWarning(char* s);
 
 %}
 
@@ -255,6 +256,8 @@ int yyerror(s) char *s; {
 
 void senmaticError(char* s) {
 	fprintf(stderr, "Senmatic Error at line %d: %s\n", lineCnt, s);
-	printst();
 	exit(-1);
+}
+void senmaticWarning(char* s) {
+	fprintf(stderr, "Senmatic Warning at line %d: %s\n", lineCnt, s);
 }

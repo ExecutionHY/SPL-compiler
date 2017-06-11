@@ -153,7 +153,7 @@ TOKEN findType(TOKEN tok) {
 	
 	if (!sym) {
 		char s[64];
-		sprintf(s, "type \"%s\" not found in symbol table", tok->stringval);
+		sprintf(s, "type \"%s\" not defined", tok->stringval);
 		senmaticError(s);
 	}
 	
@@ -251,6 +251,7 @@ TOKEN binop(TOKEN op, TOKEN lhs, TOKEN rhs) {
 	/* Type checking/coercion needed. */
 	
 	if (lhs_dataType != rhs_dataType) {
+		senmaticWarning("inconsistent type of operands");
 		op = binop_type_coerce(op, lhs, rhs);
 	}
 	else {
@@ -346,42 +347,42 @@ TOKEN makefix(TOKEN tok) {
 }
 
 TOKEN makefloat(TOKEN tok) {
-  
-  if (DEBUG & DB_MAKEFLOAT) {
-    printf("(%d)\n", debug_call_num++);
-    printf("In makefloat(), from %s\n", last_method);
-    dbugprint1arg(tok);
-    last_method = "makefloat()";
-  }
-  
-  TOKEN out;
-  
-  if (tok->tokenType == TOKEN_NUM) {
-    // e.g., floating 34 prints "3.400000e+01" to console
-    out = tok;
-    out->dataType = TYPE_REAL;
-    out->realval = out->intval;
-    out->intval = INT_MIN;
-  }
-  else {
-    // e.g., floating 34 prints "(float 34)" to console
-    out = makeOp(OP_FLOAT);
-    if (!out) {
-      printf(" Failed to alloc TOKEN, makefloat().\n");
-      return NULL;
-    }
-    
-    out->operands = tok;
-    out->link = NULL;
-  }
-  
-  if (DEBUG & DB_MAKEFLOAT) {
-    printf(" Finished makefloat().\n");
-    dbugprint1tok(out);
-    last_method = "makefloat()";
-  }
-  
-  return out;
+
+	if (DEBUG & DB_MAKEFLOAT) {
+		printf("(%d)\n", debug_call_num++);
+		printf("In makefloat(), from %s\n", last_method);
+		dbugprint1arg(tok);
+		last_method = "makefloat()";
+	}
+
+	TOKEN out;
+
+	if (tok->tokenType == TOKEN_NUM) {
+		// e.g., floating 34 prints "3.400000e+01" to console
+		out = tok;
+		out->dataType = TYPE_REAL;
+		out->realval = out->intval;
+		out->intval = INT_MIN;
+	}
+	else {
+		// e.g., floating 34 prints "(float 34)" to console
+		out = makeOp(OP_FLOAT);
+		if (!out) {
+			printf(" Failed to alloc TOKEN, makefloat().\n");
+			return NULL;
+		}
+
+		out->operands = tok;
+		out->link = NULL;
+	}
+
+	if (DEBUG & DB_MAKEFLOAT) {
+		printf(" Finished makefloat().\n");
+		dbugprint1tok(out);
+		last_method = "makefloat()";
+	}
+
+	return out;
 }
 
 void instVars(TOKEN idlist, TOKEN typetok) {
@@ -403,6 +404,13 @@ void instVars(TOKEN idlist, TOKEN typetok) {
 	align = alignsize(typesym);
 	
 	while (idlist != NULL) {
+		sym = searchst(idlist->stringval);
+		if (sym) {
+			char s[64];
+			sprintf(s, "redefinition of var \"%s\"", idlist->stringval);
+			senmaticError(s);
+		}
+
 		sym = insertsym(idlist->stringval);
 		sym->kind = SYM_VAR;
 		sym->offset = wordaddress(blockoffs[blocknumber], align);
@@ -450,6 +458,12 @@ TOKEN findId(TOKEN tok) {
 	
 	SYMBOL sym, typ;
 	sym = searchst(tok->stringval);
+
+	if (!sym) {
+		char s[64];
+		sprintf(s, "var \"%s\" not defined", tok->stringval);
+		senmaticError(s);
+	}
 
 	if (sym->kind == SYM_FUNCTION) {
 		int i;
@@ -503,7 +517,15 @@ void instType(TOKEN typename, TOKEN typetok) {
 	
 	typesym = typetok->symType;
 	
-	sym = searchins(typename->stringval);  // insert if not found
+	// error if defined
+	sym = searchst(typename->stringval);
+	if (sym) {
+		char s[64];
+		sprintf(s, "type \"%s\" redefinition", typename->stringval);
+		senmaticError(s);
+	}
+
+	sym = insertsym(typename->stringval);  // insert if not found
 	sym->kind = SYM_TYPE;
 	sym->size = typesym->size;
 	sym->dataType = typesym;
@@ -721,7 +743,7 @@ TOKEN instArray(TOKEN bounds, TOKEN typetok) {
 	
 	if (!typesym) {
 		char s[64];
-		sprintf(s, "array \"%s\" not found in symbol table", typetok->stringval);
+		sprintf(s, "type \"%s\" not defined", typetok->stringval);
 		senmaticError(s);
 	}
 	
@@ -833,6 +855,12 @@ TOKEN instFields(TOKEN idlist, TOKEN typetok) {
 	SYMBOL recsym, typesym;
 	typesym = searchst(typetok->stringval);
 
+	if (typesym) {
+		char s[64];
+		sprintf(s, "type \"%s\" not defined", typetok->stringval);
+		senmaticError(s);
+	}
+
 	TOKEN temp = idlist;
 
 	/* Set the symtype of each record field (each TOKEN in idlist).
@@ -925,7 +953,7 @@ TOKEN arrayRef(TOKEN arr, TOKEN tok, TOKEN subs, TOKEN tokb) {
 	arr_varsym = searchst(arr->stringval);
 	if (!arr_varsym) {
 		char s[64];
-		sprintf(s, "array \"%s\" not found in symbol table", arr->stringval);
+		sprintf(s, "array \"%s\" not defined", arr->stringval);
 		senmaticError(s);
 	}
 	
@@ -1125,7 +1153,7 @@ TOKEN makeFuncall(TOKEN tok, TOKEN fn, TOKEN args) {
 	SYMBOL this_fxn = searchst(fn->stringval);
 	if (!this_fxn) {
 		char s[64];
-		sprintf(s, "failed to find function with name \"%s\" in symbol table.", fn->stringval);
+		sprintf(s, "function/procedure \"%s\" not defined", fn->stringval);
 		senmaticError(s);
 	}
 	
@@ -1169,8 +1197,9 @@ TOKEN write_fxn_args_type_check(TOKEN fn, TOKEN args) {
 	
 	SYMBOL fn_sym = searchst(fn->stringval);
 	if (!fn_sym) {
-		printf(" Error: function \"%s\" is not defined.\n", fn->stringval);
-		return out;
+		char s[64];
+		sprintf(s, "function \"%s\" not defined", fn->stringval);
+		senmaticError(s);
 	}
 	
 	int fn_arg_type = fn_sym->dataType->link->basicType;
@@ -1252,15 +1281,16 @@ TOKEN get_offset(TOKEN var, TOKEN field) {
 	
 	SYMBOL found = NULL;
 	SYMBOL varsym = searchst(root_name->stringval);
+
+	if (!varsym) {
+		char s[64];
+		sprintf(s, "var \"%s\" not defined", root_name->stringval);
+		senmaticError(s);
+	}
 	
 	int var_is_arefop = 0;
 	if (var->whichval == OP_AREF) {
 		var_is_arefop = 1;
-	}
-	
-	if (!varsym) {
-		printf(" Error: could not find symbol \"%s\" in symbol table, get_offset():1.\n", root_name->stringval);
-		return NULL;
 	}
 	
 	SYMBOL temp = varsym;
@@ -1272,8 +1302,9 @@ TOKEN get_offset(TOKEN var, TOKEN field) {
 	}
 	
 	if (!temp) {
-		printf(" Error: symbol table entry \"%s\" is corrupt, get_offset():2.\n", root_name->stringval);
-		return NULL;
+		char s[64];
+		sprintf(s, "symbol table entry \"%s\" is corrupt, pos 1", root_name->stringval);
+		senmaticError(s);
 	}
 	
 	while (temp) {
@@ -1338,8 +1369,9 @@ TOKEN get_offset(TOKEN var, TOKEN field) {
 		SYMBOL temp1 = searchst(found->dataType->nameString);
 		found = NULL;
 		if (!temp1) {
-			printf(" Error: symbol table entry \"%s\" is corrupt, get_offset():3.\n", root_name->stringval);
-			return NULL;
+			char s[64];
+			sprintf(s, "symbol table entry \"%s\" is corrupt, pos 2", root_name->stringval);
+			senmaticError(s);
 		}
 		
 		while (temp1) {
@@ -1350,8 +1382,9 @@ TOKEN get_offset(TOKEN var, TOKEN field) {
 		}
 		
 		if (!temp1) {
-			printf(" Error: symbol table entry \"%s\" is corrupt, get_offset():4.\n", root_name->stringval);
-			return NULL;
+			char s[64];
+			sprintf(s, "symbol table entry \"%s\" is corrupt, pos 3", root_name->stringval);
+			senmaticError(s);
 		}
 		
 		while (temp1 && !found) {
