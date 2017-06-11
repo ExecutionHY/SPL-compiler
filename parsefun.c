@@ -15,8 +15,8 @@
 #include "pprint.h"
 
 extern int lineCnt;
-void senmaticError(char* s);
-void senmaticWarning(char* s);
+void semanticError(char* s);
+void semanticWarning(char* s);
 
 /* See parse.h for all debug constants */
 
@@ -155,7 +155,7 @@ TOKEN findType(TOKEN tok) {
 	if (!sym) {
 		char s[64];
 		sprintf(s, "type \"%s\" not defined", tok->stringval);
-		senmaticError(s);
+		semanticError(s);
 		return NULL;
 	}
 	
@@ -253,7 +253,7 @@ TOKEN binop(TOKEN op, TOKEN lhs, TOKEN rhs) {
 	/* Type checking/coercion needed. */
 	
 	if (lhs_dataType != rhs_dataType) {
-		senmaticWarning("inconsistent type of operands");
+		semanticWarning("inconsistent type of operands");
 		op = binop_type_coerce(op, lhs, rhs);
 	}
 	else {
@@ -410,7 +410,7 @@ void instVars(TOKEN idlist, TOKEN typetok) {
 		if (sym) {
 			char s[64];
 			sprintf(s, "redefinition of var \"%s\"", idlist->stringval);
-			senmaticError(s);
+			semanticError(s);
 			return;
 		}
 
@@ -465,7 +465,7 @@ TOKEN findId(TOKEN tok) {
 	if (!sym) {
 		char s[64];
 		sprintf(s, "var \"%s\" not defined", tok->stringval);
-		senmaticError(s);
+		semanticError(s);
 		return NULL;
 	}
 
@@ -526,7 +526,7 @@ void instType(TOKEN typename, TOKEN typetok) {
 	if (sym) {
 		char s[64];
 		sprintf(s, "type \"%s\" redefinition", typename->stringval);
-		senmaticError(s);
+		semanticError(s);
 		return;
 	}
 
@@ -708,7 +708,7 @@ TOKEN instDotdot(TOKEN lowtok, TOKEN dottok, TOKEN hightok) {
 			highb = sym2->constval.intNum;
 		}
 		else {
-			senmaticError("wrong type for DOTDOT");
+			semanticError("wrong type for DOTDOT");
 			return NULL;
 		}
 	}
@@ -719,7 +719,7 @@ TOKEN instDotdot(TOKEN lowtok, TOKEN dottok, TOKEN hightok) {
 		highb = hightok->intval;
 	}
 	else {
-		senmaticError("wrong type for DOTDOT");
+		semanticError("wrong type for DOTDOT");
 		return NULL;
 	}
 
@@ -755,7 +755,7 @@ TOKEN instArray(TOKEN bounds, TOKEN typetok) {
 	if (!typesym) {
 		char s[64];
 		sprintf(s, "type \"%s\" not defined", typetok->stringval);
-		senmaticError(s);
+		semanticError(s);
 		return NULL;
 	}
 	
@@ -870,7 +870,7 @@ TOKEN instFields(TOKEN idlist, TOKEN typetok) {
 	if (!typesym) {
 		char s[64];
 		sprintf(s, "type \"%s\" not defined", typetok->stringval);
-		senmaticError(s);
+		semanticError(s);
 		return NULL;
 	}
 
@@ -967,7 +967,7 @@ TOKEN arrayRef(TOKEN arr, TOKEN tok, TOKEN subs, TOKEN tokb) {
 	if (!arr_varsym) {
 		char s[64];
 		sprintf(s, "array \"%s\" not defined", arr->stringval);
-		senmaticError(s);
+		semanticError(s);
 		return NULL;
 	}
 	
@@ -1168,7 +1168,7 @@ TOKEN makeFuncall(TOKEN tok, TOKEN fn, TOKEN args) {
 	if (!this_fxn) {
 		char s[64];
 		sprintf(s, "function/procedure \"%s\" not defined", fn->stringval);
-		senmaticError(s);
+		semanticError(s);
 		return NULL;
 	}
 	
@@ -1214,7 +1214,7 @@ TOKEN write_fxn_args_type_check(TOKEN fn, TOKEN args) {
 	if (!fn_sym) {
 		char s[64];
 		sprintf(s, "function \"%s\" not defined", fn->stringval);
-		senmaticError(s);
+		semanticError(s);
 		return NULL;
 	}
 	
@@ -1301,7 +1301,7 @@ TOKEN get_offset(TOKEN var, TOKEN field) {
 	if (!varsym) {
 		char s[64];
 		sprintf(s, "var \"%s\" not defined", root_name->stringval);
-		senmaticError(s);
+		semanticError(s);
 		return NULL;
 	}
 	
@@ -1321,7 +1321,7 @@ TOKEN get_offset(TOKEN var, TOKEN field) {
 	if (!temp) {
 		char s[64];
 		sprintf(s, "symbol table entry \"%s\" is corrupt, pos 1", root_name->stringval);
-		senmaticError(s);
+		semanticError(s);
 		return NULL;
 	}
 	
@@ -1389,7 +1389,7 @@ TOKEN get_offset(TOKEN var, TOKEN field) {
 		if (!temp1) {
 			char s[64];
 			sprintf(s, "symbol table entry \"%s\" is corrupt, pos 2", root_name->stringval);
-			senmaticError(s);
+			semanticError(s);
 			return NULL;
 		}
 		
@@ -1403,7 +1403,7 @@ TOKEN get_offset(TOKEN var, TOKEN field) {
 		if (!temp1) {
 			char s[64];
 			sprintf(s, "symbol table entry \"%s\" is corrupt, pos 3", root_name->stringval);
-			senmaticError(s);
+			semanticError(s);
 			return NULL;
 		}
 		
@@ -1837,7 +1837,7 @@ TOKEN instFun(TOKEN head) {
 		TOKEN arg_tok = funtype_tok->link;
 		SYMBOL funtype_sym = searchst(funtype_tok->stringval);
 		if (!funtype_sym) {
-			senmaticError("sorry we only support SYS_TYPE in functions & procedures");
+			semanticError("sorry we only support SYS_TYPE in functions & procedures");
 			return NULL;
 		}
 

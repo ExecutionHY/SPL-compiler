@@ -26,8 +26,8 @@ TOKEN parseresult;
 extern int lineCnt;
 extern int labelnumber;
 
-void senmaticError(char* s);
-void senmaticWarning(char* s);
+void semanticError(char* s);
+void semanticWarning(char* s);
 
 %}
 
@@ -254,9 +254,9 @@ int yyerror(s) char *s; {
 	return 0;
 }
 
-void senmaticError(char* s) {
-	fprintf(stderr, "Senmatic Error at line %d: %s\n", lineCnt, s);
+void semanticError(char* s) {
+	fprintf(stderr, "semantic Error at line %d: %s\n", lineCnt, s);
 }
-void senmaticWarning(char* s) {
-	fprintf(stderr, "Senmatic Warning at line %d: %s\n", lineCnt, s);
+void semanticWarning(char* s) {
+	fprintf(stderr, "semantic Warning at line %d: %s\n", lineCnt, s);
 }
