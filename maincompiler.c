@@ -25,8 +25,8 @@ int main() {
 	initsyms();
 	res = yyparse();
 	//printst();
-	printf("yyparse result = %8d\n", res);
-	ppexpr(parseresult); 
+	//printf("yyparse result = %8d\n", res);
+	//ppexpr(parseresult); 
 	gencode(parseresult, blockoffs[blocknumber], labelnumber-1);
 	return 0;
 }

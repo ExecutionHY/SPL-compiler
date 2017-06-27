@@ -1,9 +1,14 @@
-program hello;
+program test;
 var
 	i : integer;
 
 function go(a : integer): integer;
+var
+	b : integer;
+	c : integer;
 begin
+	b := a - 1;
+	c := a - 2;
 	if a = 1 then
 	begin
 		go := 1;
@@ -16,7 +21,8 @@ begin
 		end
 		else
 		begin
-			go := go(a - 1) + go(a - 2);
+			go := go(b);
+			go := go(c) + go;
 		end
 		;
 	end

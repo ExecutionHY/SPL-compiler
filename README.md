@@ -188,3 +188,34 @@ graph1:
 
         .ident  "Compiler Principle - Spring 2017"
 ```
+## Part4
+
+run 80386 asm file
+
+### Attention
+
+- It's fine to run Part1-3 on Mac OS. However Part4 must run on Linux, because our assembly grammar is for Linux.
+- There are some bugs, if you use SPL-files other than test1.spl/test2.spl/test6.spl, you might get errors.
+- The program name must be "test", which you should find in driver.c
+
+### File
+
+- driver.c
+
+### Instruction
+
+```
+$ ./compiler < test2.spl > test2.s
+$ cc driver.c test2.s -lm
+$ ./a.out
+```
+
+### Output
+
+test2.spl compute fibonacci(10).
+
+```
+calling test
+55
+exit from test
+```

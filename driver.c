@@ -17,19 +17,28 @@
 #include <math.h>
 #include <stdlib.h>
 
-void graph1();
+void test();
 
 int main()
-  { printf("calling graph1\n");
-    graph1();
-    printf("exit from graph1\n");
+  { printf("calling test\n");
+    test();
+    printf("exit from test\n");
   }
 
+// EAX * EDX -> EAX
+int mod (int x, int y) {
+	//printf("mod: %d, %d\n", x, y);
+	return (x % y);
+}
+
+
 /* write for a string */
-void write(char str[])  {  printf("%s", str);  }
+//void write(char str[])  {  printf("%s", str);  }
+void write(int x)  {  printf("%d ", x);  }
 
 /* writeln for a string */
-void writeln(char str[])  {  printf("%s\n", str);  }
+//void writeln(char str[])  {  printf("%s\n", str);  }
+void writeln(int x)  {  printf("%d\n", x);  }
 
 /* write for a float */
 void writef(double x)  {  printf("%g", x);  }

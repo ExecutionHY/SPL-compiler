@@ -204,6 +204,7 @@ void outlits();
 void cannedcode(char* lines[]);
 
 void asmlabelstr(char name[]);
-
-
+// imull
+void asm1r(int inst, int reg);
+void asmst2(int inst, int off);
 #endif

@@ -1866,7 +1866,6 @@ TOKEN instFun(TOKEN head) {
 		new_var->tokenType = TOKEN_ID;
 		
 		instVars(new_var, findType(funtype_tok));
-
 	}
 	// if procedure
 	else {

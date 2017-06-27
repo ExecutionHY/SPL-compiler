@@ -266,6 +266,11 @@ void asmst(int inst, int reg, int off, char str[])
      printf("     \t#  %s -> %s\n", regnm(reg, inst), str);
   }
 
+void asmst2(int inst, int off)
+{  printf("\t%s\t%s,%d(%%rbp)", instpr[inst], dregpr[RBP], off);
+     printf("     \t#  store static link\n");
+  }
+
 /* Generate a floating store into a temporary on stack */
 /* Example:  asmst(MOVL, EAX, -code->symentry->offset, code->stringval);  */
 void asmsttemp( int reg )
@@ -461,3 +466,9 @@ void outlits()
      printf("\n");
      cannedcode(bottomcodec);
    }
+
+// imull
+void asm1r(int inst, int reg) {
+    printf("\t%s\t%s\t\t", instpr[inst], regpr[reg] );
+     printf("\t#  %s * %s -> %s\n", regpr[EAX], regpr[reg], regpr[EAX]);
+}

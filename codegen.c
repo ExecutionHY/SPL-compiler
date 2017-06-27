@@ -63,10 +63,12 @@ int arg_reg[4] = {EDI, ESI, EDX, ECX};
 char* funtopcode[] = {
   "	pushq	%rbp			# save base pointer on stack",
   "	movq	%rsp, %rbp		# move stack pointer to base pointer",
+  "	subq	$32, %rsp		# make space for this stack frame",
   "",
 };
 char* funbotcode[] = {
-	"	leave",
+	"	movq    %rbp, %rsp",
+	"	popq    %rbp",
 	"	ret",
 	"",
 };
@@ -126,12 +128,14 @@ int getreg(int kind) {
 		stop = NUM_REGS;
 	}
 
-	for (; i < stop; i++) {
+	for (; i < 7; i++) {
 		if (used_regs[i] == 0) {
+			if (i == EDI || i == ESI || i == EDX || i == ECX) continue;
 			used_regs[i] = 1;
 			return i;
 		}
 	}
+	if (i >= stop) printf("Regster Overflow.\n");
 
 	return RBASE;
 }
@@ -153,7 +157,7 @@ int genarith(TOKEN code) {
 				case TYPE_INT: {
 					num = code->intval;
 					reg_num = getreg(TYPE_INT);
-					if (num >= MINIMMEDIATE && num <= MAXIMMEDIATE && !nested_refs) {
+					if (num >= MINIMMEDIATE && num <= MAXIMMEDIATE) {
 						if (last_ptr && last_ptr_reg_num > -1) {
 
 						// asmimmed(MOVQ, num, last_ptr_reg_num);
@@ -198,6 +202,14 @@ int genarith(TOKEN code) {
 				printf("\n");
 			}
 
+			if (sym->blockLevel == 0) {
+				int temp_reg = getreg(TYPE_INT);
+				asmld(MOVL, 0, temp_reg, "static link");
+				reg_num = getreg(TYPE_INT);
+				asmld(MOVL, sym->offset - stkframesize, reg_num, code->stringval);
+				break;
+			}
+
 			num = sym->offset;
 
 			if (sym->kind == SYM_FUNCTION) {
@@ -239,6 +251,26 @@ int genarith(TOKEN code) {
 		}
 		break;
 		case OPERATOR: {
+			if (code->whichval == OP_MOD) {
+				lhs_reg = genarith(code->operands);
+				rhs_reg = genarith(code->operands->link);
+				asmrr(MOVL, lhs_reg, EAX);
+				asmrr(MOVL, lhs_reg, EDX);
+				asmcall("mod");
+				reg_num = EAX;
+				break;
+			}
+			if (code->whichval == OP_MUL) {
+				lhs_reg = genarith(code->operands);
+				rhs_reg = genarith(code->operands->link);
+				if (lhs_reg != EAX) {
+					asmrr(MOVL, lhs_reg, EAX);
+				}
+				asm1r(IMULL, rhs_reg);
+				reg_num = EAX;
+				break;
+			}
+
 			if (first_op_genarith == NULL) {
 				first_op_genarith = code;
 			}
@@ -246,28 +278,43 @@ int genarith(TOKEN code) {
 				nested_refs = true;
 			}
 
-			lhs_reg = genarith(code->operands);
+			if (code->whichval == OP_MINUS) lhs_reg = genarith(code->operands->link);
+			else 
+				lhs_reg = genarith(code->operands);
 
+			int count = 0;
 			if (code->operands->link) {
-				if (code->whichval == OP_FUNCALL) {
+				if (code->whichval == OP_MINUS) {
+					rhs_reg = genarith(code->operands);
+				}
+				else if (code->whichval == OP_FUNCALL) {
 					TOKEN arglist = code->operands->link;
-					int temp_reg, index = 0;
+					int temp_reg;
 					while (arglist) {
 						temp_reg = genarith(arglist);
-						asmrr(MOVL, temp_reg, arg_reg[index]); // score values into arg reg
-						mark_reg_used(arg_reg[index++]);
-						free_reg(temp_reg);
+						if (temp_reg != arg_reg[count]) {
+							asmrr(MOVL, temp_reg, arg_reg[count]); // score values into arg reg
+							mark_reg_used(arg_reg[count++]);
+							free_reg(temp_reg);
+						}
 						arglist = arglist->link;
 					}
 				}
 				else rhs_reg = genarith(code->operands->link);
-
 			}
 			else {
 				// FLOATOP (and possibly FIXOP?)
 				rhs_reg = 0;
 			}
 
+			/************* key code ***************/
+			if (code->whichval == OP_FUNCALL) saved_inline_reg = EAX;
+
+			if (code->whichval == OP_MINUS) 
+				lhs_reg = genop(code, lhs_reg, rhs_reg);
+			else 
+				lhs_reg = genop(code, rhs_reg, lhs_reg);
+			/*
 			if (code->operands->whichval == OP_FUNCALL) {
 
 				free_reg(lhs_reg);
@@ -275,14 +322,17 @@ int genarith(TOKEN code) {
 				mark_reg_used(lhs_reg);
 			}
 			if (code->operands->link) {
+				
 				if (code->operands->link->whichval == OP_FUNCALL) {
 
 					free_reg(rhs_reg);
-					rhs_reg = saved_inline_regs[num_inlines_processed - 2];
-					mark_reg_used(rhs_reg);
+					//rhs_reg = saved_inline_regs[num_inlines_processed - 2];
+					//mark_reg_used(rhs_reg);
 				}
 			}
+			*/
 
+			/*
 			boolean same_reg_assn = false;
 			if (lhs_reg == rhs_reg) {
 				same_reg_assn = true;
@@ -293,19 +343,17 @@ int genarith(TOKEN code) {
 					lhs_reg = getreg(TYPE_INT);
 				}
 			}
-
-			/************* key code ***************/
-			if (code->whichval == OP_FUNCALL) saved_inline_reg = EAX;
-			lhs_reg = genop(code, rhs_reg, lhs_reg);
+			*/
 
 			if (code->whichval == OP_FUNCALL) {
-				free_reg(arg_reg[0]);
-				free_reg(arg_reg[1]);
-				free_reg(arg_reg[2]);
-				free_reg(arg_reg[3]);
+				int i;
+				for (i = 0; i < count; i++) {
+					free_reg(arg_reg[i]);
+				}
 			}
 			else free_reg(rhs_reg);
 
+			/*
 			if (same_reg_assn) {
 				int temp;
 				if (lhs_reg > 15) {
@@ -318,12 +366,9 @@ int genarith(TOKEN code) {
 				}
 				lhs_reg = temp;
 			}
+			*/
 
-			if (code->whichval == OP_FUNCALL) {
-				reg_num = EAX;
-				mark_reg_used(reg_num);
-			}
-			else reg_num = lhs_reg;
+			reg_num = lhs_reg;
 
 		}
 		break;
@@ -343,6 +388,7 @@ int genop(TOKEN code, int rhs_reg, int lhs_reg) {
     if (DEBUGGEN) {
         printf(" OPERATOR detected, from genarith().\n");
         //printf(" %s\n", opprint[which_val]);
+        ppexpr(code);
         printf(" %d %d %d\n", code->whichval, rhs_reg, lhs_reg);
     }
 
@@ -389,6 +435,14 @@ int genop(TOKEN code, int rhs_reg, int lhs_reg) {
         }
         out = lhs_reg;
     }
+    else if (which_val == OP_MOD) {
+    	int temp_reg = getreg(TYPE_INT);
+    	asmrr(MOVL, lhs_reg, temp_reg);
+    	asmrr(DIVL, rhs_reg, lhs_reg);
+    	asmrr(IMULL, rhs_reg, lhs_reg);
+    	asmrr(SUBL, lhs_reg, temp_reg);
+    	out = temp_reg;
+    }
     else if (which_val == OP_EQ) {
         out = nextlabel++;
         asmrr(CMPL, rhs_reg, lhs_reg);
@@ -421,34 +475,43 @@ int genop(TOKEN code, int rhs_reg, int lhs_reg) {
     }
     else if (which_val == OP_FUNCALL) {
 
+    	int temp_reg;
         if (inline_funcall) {
-
+        	asmcall(inline_funcall->stringval);
+            temp_reg = getreg(TYPE_INT);
+            if (temp_reg != EAX) asmrr(MOVL, EAX, temp_reg);
+            
+            //saved_inline_regs[num_inlines_processed++] = temp_reg;
+            /*
             if (num_funcalls_in_curr_tree > 1) {
                 saved_inline_regs[num_inlines_processed] = saved_inline_reg;
                 num_inlines_processed++;
                 if (num_inlines_processed == 1) {
                     asmcall(inline_funcall->stringval);
-                    asmsttemp(saved_inline_reg);
+                    //asmsttemp(saved_inline_reg);
+                    temp_reg = getreg(TYPE_INT);
+                    asmrr(MOVL, EAX, temp_reg);
+
                 }
                 else if (num_inlines_processed > 0 && num_inlines_processed < num_funcalls_in_curr_tree) {
                     // load and then store?
                 }
                 else {
                     asmcall(inline_funcall->stringval);
-                    asmldtemp(saved_inline_reg);
+                    //asmldtemp(saved_inline_reg);
                 }
             }
             else {
                 asmcall(inline_funcall->stringval);
             }
 
-            inline_funcall = NULL;
+            inline_funcall = NULL;*/
         }
         else {
             // ?????????????????????????????
         }
 
-        out = lhs_reg;
+        out = temp_reg;
     }
     else if (which_val == OP_AREF) {
 
@@ -866,7 +929,7 @@ void genc(TOKEN code){
 			
 		}
 		break;
-		// procedures. functions will be generate by OP_ASSIGN / getarith
+		// procedures. functions will be generate by OP_ASSIGN / genarith
 		case OP_FUNCALL: {
 
 			if (DEBUGGEN) {
@@ -1020,6 +1083,7 @@ void genc(TOKEN code){
 				}
 				arglist = arglist->link;
 			}
+			//asmst2(MOVQ, 0);
 
 			genc(rhs);	// routine body
 
@@ -1090,7 +1154,7 @@ boolean both_float(int lhs_reg, int rhs_reg) {
 
 void mark_reg_unused(int reg_num) {
     if (reg_num < 0 || reg_num >= NUM_REGS) {
-        printf("Error: register %d out of bounds\n", reg_num);
+        printf("1 Error: register %d out of bounds\n", reg_num);
         return;
     }
     used_regs[reg_num] = 0;
@@ -1098,7 +1162,7 @@ void mark_reg_unused(int reg_num) {
 
 void mark_reg_used(int reg_num) {
     if (reg_num < 0 || reg_num >= NUM_REGS) {
-        printf("Error: register %d out of bounds\n", reg_num);
+        printf("2 Error: register %d out of bounds\n", reg_num);
         return;
     }
     used_regs[reg_num] = 1;    

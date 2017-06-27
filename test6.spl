@@ -1,21 +1,26 @@
-program hello;
+program test;
 var 
 	ans : integer;
-
+	tmp : integer;
 function gcd(a, b : integer) : integer;
+var
+	c : integer;
 begin
 	if b = 0 then begin
 		gcd := a;
 	end
 	else begin
-		gcd := gcd(b , a % b);
+		c := a % b;
+		gcd := gcd(b , c);
 	end
 	;
 end
 ;
 
 begin
-	ans := gcd(9 , 36) * gcd(3 , 6);
+	ans := gcd(36 , 9);
+	tmp := gcd(6, 3);
+	ans := tmp * ans;
 	writeln(ans);
 end
 .

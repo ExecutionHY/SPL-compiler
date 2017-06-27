@@ -1,31 +1,29 @@
-program graph1;
-type
-	type1 = record
-		num : integer;
-		value : real;
-	end;
-	type2 = (item0, item1, item2);
+program test;
 var
-	a : integer;
-	b : real;
-
-	c : array[1..10] of integer;
-	d : type1;
-	e : type2;
+	x : integer;
+function go(a : integer): integer;
+var
+	b : integer;
+	c : integer;
 begin
-	a := 1;
-	b := 1.1;
-	c[2] := 1;
-	d.num := 1;
-	e := item2;
-
-	if a = d.num then write(a)
-	else a := d.num
+	b := a-1;
+	c := a-2;
+	if a = 1 then go := 1
+	else begin
+		if a = 2 then go := 1
+		else begin
+			go := go(b);
+			go := go(c) + go;
+		end
+		;
+	end
 	;
+end
+;
 
-	repeat
-		a := a + 1;
-	until a = 5;
+begin
+	x := go(10);
+	writeln(x);
 
 end
 .
